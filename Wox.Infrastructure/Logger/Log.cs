@@ -1,16 +1,16 @@
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.CompilerServices;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
-using Sentry;
-using Wox.Infrastructure.Exception;
-using Wox.Infrastructure.UserSettings;
-
 namespace Wox.Infrastructure.Logger
 {
+    using System;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Runtime.CompilerServices;
+    using Exception;
+    using NLog;
+    using NLog.Config;
+    using NLog.Targets;
+    using Sentry;
+    using UserSettings;
+
     public static class Log
     {
         public const string DirectoryName = "Logs";
@@ -21,17 +21,14 @@ namespace Wox.Infrastructure.Logger
         static Log()
         {
             CurrentLogDirectory = Path.Combine(DataLocation.DataDirectory(), DirectoryName, Constant.Version);
-            if (!Directory.Exists(CurrentLogDirectory))
-            {
-                Directory.CreateDirectory(CurrentLogDirectory);
-            }
+            if (!Directory.Exists(CurrentLogDirectory)) Directory.CreateDirectory(CurrentLogDirectory);
 
             var configuration = new LoggingConfiguration();
-            var fileTarget = new FileTarget()
+            var fileTarget = new FileTarget
             {
-                FileName = CurrentLogDirectory.Replace(@"\", "/") + "/${shortdate}.txt",
+                FileName = CurrentLogDirectory.Replace(@"\", "/") + "/${shortdate}.txt"
             };
-            var consoleTarget = new NLog.Targets.ConsoleTarget();
+            var consoleTarget = new ConsoleTarget();
 #if DEBUG
             configuration.AddRule(LogLevel.Debug, LogLevel.Fatal, fileTarget);
 #else
@@ -40,8 +37,9 @@ namespace Wox.Infrastructure.Logger
             LogManager.Configuration = configuration;
         }
 
+        #region Public
 
-        public static void WoxTrace(this NLog.Logger logger, string message, [CallerMemberName] string methodName = "")
+        public static void WoxTrace(this Logger logger, string message, [CallerMemberName] string methodName = "")
         {
             // need change logging manually to see trace log
             if (logger.IsTraceEnabled)
@@ -49,43 +47,36 @@ namespace Wox.Infrastructure.Logger
                 Debug.WriteLine($"DEBUG|{logger.Name}|{methodName}|{message}");
                 logger.Trace($"{methodName}|{message}");
             }
-
         }
 
-        public static void WoxDebug(this NLog.Logger logger, string message, [CallerMemberName] string methodName = "")
+        public static void WoxDebug(this Logger logger, string message, [CallerMemberName] string methodName = "")
         {
             Debug.WriteLine($"DEBUG|{logger.Name}|{methodName}|{message}");
             logger.Debug($"{methodName}|{message}");
         }
 
 
-        public static void WoxInfo(this NLog.Logger logger, string message, [CallerMemberName] string methodName = "")
+        public static void WoxInfo(this Logger logger, string message, [CallerMemberName] string methodName = "")
         {
             Debug.WriteLine($"INFO|{logger.Name}|{methodName}|{message}");
             logger.Info($"{methodName}|{message}");
         }
 
-        public static void WoxError(this NLog.Logger logger, string message, [CallerMemberName] string methodName = "")
+        public static void WoxError(this Logger logger, string message, [CallerMemberName] string methodName = "")
         {
             Debug.WriteLine($"ERROR|{logger.Name}|{methodName}|{message}");
             logger.Error($"{methodName}|{message}");
         }
 
         public static void WoxError(
-            this NLog.Logger logger, string message, System.Exception exception, bool throwException = true, bool sendException = true, [CallerMemberName] string methodName = "")
+            this Logger logger, string message, Exception exception, bool throwException = true, bool sendException = true, [CallerMemberName] string methodName = "")
         {
             Debug.WriteLine($"ERROR|{logger.Name}|{methodName}|{message}");
             logger.Error($"{methodName}|{message}|{ExceptionFormatter.FormattedException(exception)}");
-            if (sendException)
-            {
-                SendException(exception);
-            }
+            if (sendException) SendException(exception);
 
 #if DEBUG
-            if (throwException)
-            {
-                throw exception;
-            }
+            if (throwException) throw exception;
 #endif
         }
 
@@ -93,13 +84,10 @@ namespace Wox.Infrastructure.Logger
         {
             _woxLanguage = woxLanguage;
 
-            SentrySdk.ConfigureScope(scope =>
-            {
-                scope.SetTag("woxLanguage", _woxLanguage);
-            });
+            SentrySdk.ConfigureScope(scope => { scope.SetTag("woxLanguage", _woxLanguage); });
         }
 
-        public static void SendException(System.Exception exception)
+        public static void SendException(Exception exception)
         {
 #if !DEBUG
             string pluginDiretoryKey = nameof(Plugin.PluginPair.Metadata.PluginDirectory);
@@ -122,6 +110,6 @@ namespace Wox.Infrastructure.Logger
 #endif
         }
 
+        #endregion
     }
-
 }

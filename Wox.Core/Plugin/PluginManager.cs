@@ -1,64 +1,50 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using NLog;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.Storage;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox.Core.Plugin
+﻿namespace Wox.Core.Plugin
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Infrastructure.Storage;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using Wox.Plugin;
+
     /// <summary>
     /// The entry for managing Wox plugins
     /// </summary>
     public static class PluginManager
     {
-        private static IEnumerable<PluginPair> _contextMenuPlugins;
+        public static readonly List<PluginPair> GlobalPlugins = new List<PluginPair>();
+        public static readonly Dictionary<string, PluginPair> NonGlobalPlugins = new Dictionary<string, PluginPair>();
+
+        // todo this should not be public, the indicator function should be embeded 
+        public static PluginsSettings Settings;
 
         /// <summary>
         /// Directories that will hold Wox plugin directory
         /// </summary>
 
         public static List<PluginPair> AllPlugins { get; private set; }
-        public static readonly List<PluginPair> GlobalPlugins = new List<PluginPair>();
-        public static readonly Dictionary<string, PluginPair> NonGlobalPlugins = new Dictionary<string, PluginPair>();
 
         public static IPublicAPI API { private set; get; }
-
-        // todo this should not be public, the indicator function should be embeded 
-        public static PluginsSettings Settings;
+        private static IEnumerable<PluginPair> _contextMenuPlugins;
         private static List<PluginMetadata> _metadatas;
-        private static readonly string[] Directories = { Constant.PreinstalledDirectory, DataLocation.PluginsDirectory };
+        private static readonly string[] Directories = {Constant.PreinstalledDirectory, DataLocation.PluginsDirectory};
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static void ValidateUserDirectory()
+        static PluginManager()
         {
-            if (!Directory.Exists(DataLocation.PluginsDirectory))
-            {
-                Directory.CreateDirectory(DataLocation.PluginsDirectory);
-            }
+            ValidateUserDirectory();
+            // force old plugins use new python binding
+            DeletePythonBinding();
         }
 
-        private static void DeletePythonBinding()
-        {
-            const string binding = "wox.py";
-            var directory = DataLocation.PluginsDirectory;
-            foreach (var subDirectory in Directory.GetDirectories(directory))
-            {
-                var path = Path.Combine(subDirectory, binding);
-                if (File.Exists(path))
-                {
-                    File.Delete(path);
-                }
-            }
-        }
+        #region Public
 
         public static void Save()
         {
@@ -76,13 +62,6 @@ namespace Wox.Core.Plugin
                 var reloadablePlugin = plugin.Plugin as IReloadable;
                 reloadablePlugin?.ReloadData();
             }
-        }
-
-        static PluginManager()
-        {
-            ValidateUserDirectory();
-            // force old plugins use new python binding
-            DeletePythonBinding();
         }
 
         /// <summary>
@@ -141,14 +120,14 @@ namespace Wox.Core.Plugin
 
                 // Plugins may have multiple ActionKeywords, eg. WebSearch
                 plugin.Metadata.ActionKeywords.Where(x => x != Query.GlobalPluginWildcardSign)
-                                                .ToList()
-                                                .ForEach(x => NonGlobalPlugins[x] = plugin);
+                    .ToList()
+                    .ForEach(x => NonGlobalPlugins[x] = plugin);
             }
 
             if (failedPlugins.Any())
             {
                 var failed = string.Join(",", failedPlugins.Select(x => x.Metadata.Name));
-                API.ShowMsg($"Fail to Init Plugins", $"Plugins: {failed} - fail to load and would be disabled, please contact plugin creator for help", "", false);
+                API.ShowMsg("Fail to Init Plugins", $"Plugins: {failed} - fail to load and would be disabled, please contact plugin creator for help", "", false);
             }
         }
 
@@ -164,11 +143,11 @@ namespace Wox.Core.Plugin
                 var metadata = pair.Metadata;
                 if (!metadata.Disabled)
                 {
-                    bool validGlobalQuery = string.IsNullOrEmpty(query.ActionKeyword) && pair.Metadata.ActionKeywords[0] == Query.GlobalPluginWildcardSign;
-                    bool validNonGlobalQuery = pair.Metadata.ActionKeywords.Contains(query.ActionKeyword);
+                    var validGlobalQuery = string.IsNullOrEmpty(query.ActionKeyword) && pair.Metadata.ActionKeywords[0] == Query.GlobalPluginWildcardSign;
+                    var validNonGlobalQuery = pair.Metadata.ActionKeywords.Contains(query.ActionKeyword);
                     if (validGlobalQuery || validNonGlobalQuery)
                     {
-                        List<Result> results = new List<Result>();
+                        var results = new List<Result>();
                         var milliseconds = Logger.StopWatchDebug($"Query <{query.RawQuery}> Cost for {metadata.Name}", () =>
                         {
                             results = pair.Plugin.Query(query) ?? new List<Result>();
@@ -178,15 +157,11 @@ namespace Wox.Core.Plugin
                         metadata.AvgQueryTime = metadata.QueryCount == 1 ? milliseconds : (metadata.AvgQueryTime + milliseconds) / 2;
                         return results;
                     }
-                    else
-                    {
-                        return new List<Result>();
-                    }
-                }
-                else
-                {
+
                     return new List<Result>();
                 }
+
+                return new List<Result>();
             }
             catch (Exception e)
             {
@@ -207,23 +182,15 @@ namespace Wox.Core.Plugin
                 r.PluginID = metadata.ID;
                 r.OriginQuery = query;
 
-                string key = "EmbededIcon:";
+                var key = "EmbeddedIcon:";
                 // todo, use icon path type enum in the future
-                if (!string.IsNullOrEmpty(r.PluginDirectory) && !string.IsNullOrEmpty(r.IcoPath) && !Path.IsPathRooted(r.IcoPath) && !r.IcoPath.StartsWith(key))
-                {
-                    r.IcoPath = Path.Combine(r.PluginDirectory, r.IcoPath);
-                }
+                if (!string.IsNullOrEmpty(r.PluginDirectory) && !string.IsNullOrEmpty(r.IcoPath) && !Path.IsPathRooted(r.IcoPath) && !r.IcoPath.StartsWith(key)) r.IcoPath = Path.Combine(r.PluginDirectory, r.IcoPath);
 
                 // ActionKeywordAssigned is used for constructing MainViewModel's query text auto-complete suggestions 
                 // Plugins may have multi-actionkeywords eg. WebSearches. In this scenario it needs to be overriden on the plugin level 
                 if (metadata.ActionKeywords.Count == 1)
                     r.ActionKeywordAssigned = query.ActionKeyword;
             }
-        }
-
-        private static bool IsGlobalPlugin(PluginMetadata metadata)
-        {
-            return metadata.ActionKeywords.Contains(Query.GlobalPluginWildcardSign);
         }
 
         /// <summary>
@@ -247,7 +214,7 @@ namespace Wox.Core.Plugin
             if (pluginPair != null)
             {
                 var metadata = pluginPair.Metadata;
-                var plugin = (IContextMenu)pluginPair.Plugin;
+                var plugin = (IContextMenu) pluginPair.Plugin;
 
                 try
                 {
@@ -258,6 +225,7 @@ namespace Wox.Core.Plugin
                         r.PluginID = metadata.ID;
                         r.OriginQuery = result.OriginQuery;
                     }
+
                     return results;
                 }
                 catch (Exception e)
@@ -266,24 +234,16 @@ namespace Wox.Core.Plugin
                     return new List<Result>();
                 }
             }
-            else
-            {
-                return new List<Result>();
-            }
 
+            return new List<Result>();
         }
 
         public static bool ActionKeywordRegistered(string actionKeyword)
         {
             if (actionKeyword != Query.GlobalPluginWildcardSign &&
                 NonGlobalPlugins.ContainsKey(actionKeyword))
-            {
                 return true;
-            }
-            else
-            {
-                return false;
-            }
+            return false;
         }
 
         /// <summary>
@@ -294,13 +254,9 @@ namespace Wox.Core.Plugin
         {
             var plugin = GetPluginForId(id);
             if (newActionKeyword == Query.GlobalPluginWildcardSign)
-            {
                 GlobalPlugins.Add(plugin);
-            }
             else
-            {
                 NonGlobalPlugins[newActionKeyword] = plugin;
-            }
             plugin.Metadata.ActionKeywords.Add(newActionKeyword);
         }
 
@@ -308,24 +264,22 @@ namespace Wox.Core.Plugin
         /// used to add action keyword for multiple action keyword plugin
         /// e.g. web search
         /// </summary>
-        public static void RemoveActionKeyword(string id, string oldActionkeyword)
+        public static void RemoveActionKeyword(string id, string oldActionKeyword)
         {
             var plugin = GetPluginForId(id);
-            if (oldActionkeyword == Query.GlobalPluginWildcardSign
+            if (oldActionKeyword == Query.GlobalPluginWildcardSign
                 && // Plugins may have multiple ActionKeywords that are global, eg. WebSearch
                 plugin.Metadata.ActionKeywords
-                                    .Where(x => x == Query.GlobalPluginWildcardSign)
-                                    .ToList()
-                                    .Count == 1)
-            {
+                    .Where(x => x == Query.GlobalPluginWildcardSign)
+                    .ToList()
+                    .Count == 1)
                 GlobalPlugins.Remove(plugin);
-            }
 
-            if (oldActionkeyword != Query.GlobalPluginWildcardSign)
-                NonGlobalPlugins.Remove(oldActionkeyword);
+            if (oldActionKeyword != Query.GlobalPluginWildcardSign)
+                NonGlobalPlugins.Remove(oldActionKeyword);
 
 
-            plugin.Metadata.ActionKeywords.Remove(oldActionkeyword);
+            plugin.Metadata.ActionKeywords.Remove(oldActionKeyword);
         }
 
         public static void ReplaceActionKeyword(string id, string oldActionKeyword, string newActionKeyword)
@@ -336,5 +290,32 @@ namespace Wox.Core.Plugin
                 RemoveActionKeyword(id, oldActionKeyword);
             }
         }
+
+        #endregion
+
+        #region Private
+
+        private static void ValidateUserDirectory()
+        {
+            if (!Directory.Exists(DataLocation.PluginsDirectory)) Directory.CreateDirectory(DataLocation.PluginsDirectory);
+        }
+
+        private static void DeletePythonBinding()
+        {
+            const string binding = "wox.py";
+            var directory = DataLocation.PluginsDirectory;
+            foreach (var subDirectory in Directory.GetDirectories(directory))
+            {
+                var path = Path.Combine(subDirectory, binding);
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        private static bool IsGlobalPlugin(PluginMetadata metadata)
+        {
+            return metadata.ActionKeywords.Contains(Query.GlobalPluginWildcardSign);
+        }
+
+        #endregion
     }
 }

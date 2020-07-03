@@ -1,28 +1,36 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json;
-using Wox.Plugin;
-
-namespace Wox.Storage
+﻿namespace Wox.Storage
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using Newtonsoft.Json;
+    using Plugin;
+
     // todo this class is not thread safe.... but used from multiple threads.
     public class TopMostRecord
     {
         [JsonProperty]
         private Dictionary<string, Record> records = new Dictionary<string, Record>();
 
+        #region Public
+
+        public void Load(Dictionary<string, Record> dictionary)
+        {
+            records = dictionary;
+        }
+
+        #endregion
+
+        #region Internal
+
         internal bool IsTopMost(Result result)
         {
-            if (records.Count == 0)
-            {
-                return false;
-            }
+            if (records.Count == 0) return false;
 
             // since this dictionary should be very small (or empty) going over it should be pretty fast. 
             return records.Any(o => o.Value.Title == result.Title
-                                     && o.Value.SubTitle == result.SubTitle
-                                     && o.Value.PluginID == result.PluginID
-                                     && o.Key == result.OriginQuery.RawQuery);
+                                    && o.Value.SubTitle == result.SubTitle
+                                    && o.Value.PluginID == result.PluginID
+                                    && o.Key == result.OriginQuery.RawQuery);
         }
 
         internal void Remove(Result result)
@@ -39,13 +47,9 @@ namespace Wox.Storage
                 SubTitle = result.SubTitle
             };
             records[result.OriginQuery.RawQuery] = record;
-
         }
 
-        public void Load(Dictionary<string, Record> dictionary)
-        {
-            records = dictionary;
-        }
+        #endregion
     }
 
 

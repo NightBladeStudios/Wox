@@ -1,23 +1,20 @@
-﻿using System;
-using System.Globalization;
-using System.Windows.Data;
-using System.Windows.Markup;
-
-namespace Wox.Plugin.Program
+﻿namespace Wox.Plugin.Program
 {
+    using System;
+    using System.Globalization;
+    using System.Windows.Data;
+    using System.Windows.Markup;
+
     public class SuffixesConvert : MarkupExtension, IValueConverter
     {
+        #region Public
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var text = value as string[];
             if (text != null)
-            {
                 return string.Join(";", text);
-            }
-            else
-            {
-                return string.Empty;
-            }
+            return string.Empty;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -29,5 +26,7 @@ namespace Wox.Plugin.Program
         {
             return this;
         }
+
+        #endregion
     }
 }

@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_plugin_management_plugin_name">Zarządzanie wtyczkami Wox</system:String>
     <system:String x:Key="wox_plugin_plugin_management_plugin_description">Pozwala na instalacje, usuwanie i aktualizacje wtyczek</system:String>
-    
+
 </ResourceDictionary>

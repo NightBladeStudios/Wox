@@ -1,39 +1,52 @@
-using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Net.Http;
-using System.Net.Sockets;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using JetBrains.Annotations;
-using Squirrel;
-using Newtonsoft.Json;
-using Wox.Core.Resource;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Http;
-using Wox.Infrastructure.Logger;
-using System.IO;
-using NLog;
-using Wox.Infrastructure.UserSettings;
-
 namespace Wox.Core
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Net.Http;
+    using System.Net.Sockets;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using Infrastructure;
+    using Infrastructure.Http;
+    using Infrastructure.Logger;
+    using JetBrains.Annotations;
+    using Newtonsoft.Json;
+    using NLog;
+    using Resource;
+    using Squirrel;
+
     public class Updater
     {
         public string GitHubRepository { get; }
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        [UsedImplicitly]
+        private class GithubRelease
+        {
+            [JsonProperty("prerelease")]
+            public bool Prerelease { get; [UsedImplicitly] set; }
+
+            [JsonProperty("published_at")]
+            public DateTime PublishedAt { get; [UsedImplicitly] set; }
+
+            [JsonProperty("html_url")]
+            public string HtmlUrl { get; [UsedImplicitly] set; }
+        }
 
         public Updater(string gitHubRepository)
         {
             GitHubRepository = gitHubRepository;
         }
 
+        #region Public
+
         public async Task UpdateApp(bool silentIfLatestVersion = true, bool updateToPrereleases = false)
         {
             try
             {
-                using (UpdateManager updateManager = await GitHubUpdateManager(GitHubRepository, updateToPrereleases))
+                using (var updateManager = await GitHubUpdateManager(GitHubRepository, updateToPrereleases))
                 {
                     UpdateInfo newUpdateInfo;
                     try
@@ -76,12 +89,10 @@ namespace Wox.Core
 
                     await updateManager.CreateUninstallerRegistryEntry();
 
-                    var newVersionTips = NewVersinoTips(newReleaseVersion.ToString());
+                    var newVersionTips = NewVersionTips(newReleaseVersion.ToString());
 
                     MessageBox.Show(newVersionTips);
                     Logger.WoxInfo($"Update success:{newVersionTips}");
-
-
                 }
             }
             catch (Exception e) when (e is HttpRequestException || e is WebException || e is SocketException)
@@ -92,24 +103,21 @@ namespace Wox.Core
             {
                 Logger.WoxError($"cannot check update {e.Message}");
             }
-
         }
 
-        [UsedImplicitly]
-        private class GithubRelease
+        public string NewVersionTips(string version)
         {
-            [JsonProperty("prerelease")]
-            public bool Prerelease { get; [UsedImplicitly] set; }
-
-            [JsonProperty("published_at")]
-            public DateTime PublishedAt { get; [UsedImplicitly] set; }
-
-            [JsonProperty("html_url")]
-            public string HtmlUrl { get; [UsedImplicitly] set; }
+            var translator = InternationalizationManager.Instance;
+            var tips = string.Format(translator.GetTranslation("newVersionTips"), version);
+            return tips;
         }
+
+        #endregion
+
+        #region Private
 
         /// https://github.com/Squirrel/Squirrel.Windows/blob/master/src/Squirrel/UpdateManager.Factory.cs
-        private async Task<UpdateManager> GitHubUpdateManager(string repository, bool updateToPrereleases)
+        private async Task<UpdateManager> GitHubUpdateManager(string repository, bool updateToPreReleases)
         {
             var uri = new Uri(repository);
             var api = $"https://api.github.com/repos{uri.AbsolutePath}/releases";
@@ -117,28 +125,19 @@ namespace Wox.Core
             var json = await Http.Get(api);
 
             var releases = JsonConvert.DeserializeObject<List<GithubRelease>>(json).AsEnumerable();
-            if (!updateToPrereleases)
-            {
-                releases = releases.Where(r => !r.Prerelease);
-            }
+            if (!updateToPreReleases) releases = releases.Where(r => !r.Prerelease);
             var latest = releases.OrderByDescending(r => r.PublishedAt).First();
 
             var latestUrl = latest.HtmlUrl.Replace("/tag/", "/download/");
 
-            var client = new WebClient { Proxy = Http.WebProxy() };
-            var downloader = new FileDownloader(client);
+            var client = new WebClient {Proxy = Http.WebProxy()};
+            var fileDownloader = new FileDownloader(client);
 
-            var manager = new UpdateManager(latestUrl, urlDownloader: downloader);
+            var manager = new UpdateManager(latestUrl, urlDownloader: fileDownloader);
 
             return manager;
         }
 
-        public string NewVersinoTips(string version)
-        {
-            var translater = InternationalizationManager.Instance;
-            var tips = string.Format(translater.GetTranslation("newVersionTips"), version);
-            return tips;
-        }
-
+        #endregion
     }
 }

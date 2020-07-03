@@ -1,28 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Windows;
-using NLog;
-using Wox.Core.Plugin;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox.Core.Resource
+﻿namespace Wox.Core.Resource
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using System.Windows;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using Plugin;
+    using Wox.Plugin;
+
     public class Internationalization
     {
         public Settings Settings { get; set; }
         private const string Folder = "Languages";
         private const string DefaultFile = "en.xaml";
         private const string Extension = ".xaml";
-        private readonly List<string> _languageDirectories = new List<string>();
-        private readonly List<ResourceDictionary> _oldResources = new List<ResourceDictionary>();
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly List<string> _languageDirectories = new List<string>();
+        private readonly List<ResourceDictionary> _oldResources = new List<ResourceDictionary>();
 
         public Internationalization()
         {
@@ -34,6 +34,77 @@ namespace Wox.Core.Resource
             AddWoxLanguageDirectory();
         }
 
+        #region Public
+
+        public void ChangeLanguage(string languageCode)
+        {
+            languageCode = languageCode.NonNull();
+            var language = GetLanguageByLanguageCode(languageCode);
+            ChangeLanguage(language);
+        }
+
+        public void ChangeLanguage(Language language)
+        {
+            language = language.NonNull();
+
+            Settings.Language = language.LanguageCode;
+
+            RemoveOldLanguageFiles();
+            if (language != AvailableLanguages.English) LoadLanguage(language);
+            UpdatePluginMetadataTranslations();
+        }
+
+        public bool PromptShouldUsePinyin(string languageCodeToSet)
+        {
+            var languageToSet = GetLanguageByLanguageCode(languageCodeToSet);
+
+            if (Settings.ShouldUsePinyin)
+                return false;
+
+            if (languageToSet != AvailableLanguages.Chinese && languageToSet != AvailableLanguages.Chinese_TW)
+                return false;
+
+            if (MessageBox.Show("Do you want to turn on search with Pinyin?", string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.No)
+                return false;
+
+            return true;
+        }
+
+        public List<Language> LoadAvailableLanguages()
+        {
+            return AvailableLanguages.GetAvailableLanguages();
+        }
+
+        public string GetTranslation(string key)
+        {
+            var translation = Application.Current.TryFindResource(key);
+            if (translation is string) return translation.ToString();
+
+            Logger.WoxError($"No Translation for key {key}");
+            return $"No Translation for key {key}";
+        }
+
+        public string LanguageFile(string folder, string language)
+        {
+            if (Directory.Exists(folder))
+            {
+                var path = Path.Combine(folder, language);
+                if (File.Exists(path)) return path;
+
+                Logger.WoxError($"Language path can't be found <{path}>");
+                var english = Path.Combine(folder, DefaultFile);
+                if (File.Exists(english)) return english;
+
+                Logger.WoxError($"Default English Language path can't be found <{path}>");
+                return string.Empty;
+            }
+
+            return string.Empty;
+        }
+
+        #endregion
+
+        #region Private
 
         private void AddWoxLanguageDirectory()
         {
@@ -67,13 +138,6 @@ namespace Wox.Core.Resource
             _oldResources.Clear();
         }
 
-        public void ChangeLanguage(string languageCode)
-        {
-            languageCode = languageCode.NonNull();
-            Language language = GetLanguageByLanguageCode(languageCode);
-            ChangeLanguage(language);
-        }
-
         private Language GetLanguageByLanguageCode(string languageCode)
         {
             var lowercase = languageCode.ToLower();
@@ -83,50 +147,14 @@ namespace Wox.Core.Resource
                 Logger.WoxError($"Language code can't be found <{languageCode}>");
                 return AvailableLanguages.English;
             }
-            else
-            {
-                return language;
-            }
-        }
 
-        public void ChangeLanguage(Language language)
-        {
-            language = language.NonNull();
-
-            Settings.Language = language.LanguageCode;
-
-            RemoveOldLanguageFiles();
-            if (language != AvailableLanguages.English)
-            {
-                LoadLanguage(language);
-            }
-            UpdatePluginMetadataTranslations();
-
-        }
-
-        public bool PromptShouldUsePinyin(string languageCodeToSet)
-        {
-            var languageToSet = GetLanguageByLanguageCode(languageCodeToSet);
-
-            if (Settings.ShouldUsePinyin)
-                return false;
-
-            if (languageToSet != AvailableLanguages.Chinese && languageToSet != AvailableLanguages.Chinese_TW)
-                return false;
-
-            if (MessageBox.Show("Do you want to turn on search with Pinyin?", string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.No)
-                return false;
-
-            return true;
+            return language;
         }
 
         private void RemoveOldLanguageFiles()
         {
             var dicts = Application.Current.Resources.MergedDictionaries;
-            foreach (var r in _oldResources)
-            {
-                dicts.Remove(r);
-            }
+            foreach (var r in _oldResources) dicts.Remove(r);
         }
 
         private void LoadLanguage(Language language)
@@ -139,7 +167,6 @@ namespace Wox.Core.Resource
                 .ToArray();
 
             if (files.Length > 0)
-            {
                 foreach (var f in files)
                 {
                     var r = new ResourceDictionary
@@ -149,26 +176,6 @@ namespace Wox.Core.Resource
                     dicts.Add(r);
                     _oldResources.Add(r);
                 }
-            }
-        }
-
-        public List<Language> LoadAvailableLanguages()
-        {
-            return AvailableLanguages.GetAvailableLanguages();
-        }
-
-        public string GetTranslation(string key)
-        {
-            var translation = Application.Current.TryFindResource(key);
-            if (translation is string)
-            {
-                return translation.ToString();
-            }
-            else
-            {
-                Logger.WoxError($"No Translation for key {key}");
-                return $"No Translation for key {key}";
-            }
         }
 
         private void UpdatePluginMetadataTranslations()
@@ -189,34 +196,6 @@ namespace Wox.Core.Resource
             }
         }
 
-        public string LanguageFile(string folder, string language)
-        {
-            if (Directory.Exists(folder))
-            {
-                string path = Path.Combine(folder, language);
-                if (File.Exists(path))
-                {
-                    return path;
-                }
-                else
-                {
-                    Logger.WoxError($"Language path can't be found <{path}>");
-                    string english = Path.Combine(folder, DefaultFile);
-                    if (File.Exists(english))
-                    {
-                        return english;
-                    }
-                    else
-                    {
-                        Logger.WoxError($"Default English Language path can't be found <{path}>");
-                        return string.Empty;
-                    }
-                }
-            }
-            else
-            {
-                return string.Empty;
-            }
-        }
+        #endregion
     }
 }

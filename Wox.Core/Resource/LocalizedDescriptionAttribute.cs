@@ -1,27 +1,26 @@
-﻿using System.ComponentModel;
-using Wox.Core.Resource;
-
-namespace Wox.Core
+﻿namespace Wox.Core
 {
+    using System.ComponentModel;
+    using Resource;
+
     public class LocalizedDescriptionAttribute : DescriptionAttribute
     {
-        private readonly Internationalization _translator;
+        public override string Description
+        {
+            get
+            {
+                var description = _translator.GetTranslation(_resourceKey);
+                return string.IsNullOrWhiteSpace(description) ? string.Format("[[{0}]]", _resourceKey) : description;
+            }
+        }
+
         private readonly string _resourceKey;
+        private readonly Internationalization _translator;
 
         public LocalizedDescriptionAttribute(string resourceKey)
         {
             _translator = InternationalizationManager.Instance;
             _resourceKey = resourceKey;
-        }
-
-        public override string Description
-        {
-            get
-            {
-                string description = _translator.GetTranslation(_resourceKey);
-                return string.IsNullOrWhiteSpace(description) ? 
-                    string.Format("[[{0}]]", _resourceKey) : description;
-            }
         }
     }
 }

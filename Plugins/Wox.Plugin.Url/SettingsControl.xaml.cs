@@ -1,31 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Microsoft.Win32;
-
-
-namespace Wox.Plugin.Url
+﻿namespace Wox.Plugin.Url
 {
+    using System.Windows;
+    using System.Windows.Controls;
+    using Microsoft.Win32;
+
     /// <summary>
     /// SettingsControl.xaml 的交互逻辑
     /// </summary>
     public partial class SettingsControl : UserControl
     {
-        private Settings _settings;
-        private IPublicAPI _woxAPI;
+        private readonly Settings _settings;
+        private readonly IPublicAPI _woxAPI;
 
-        public SettingsControl(IPublicAPI woxAPI,Settings settings)
+        public SettingsControl(IPublicAPI woxAPI, Settings settings)
         {
             InitializeComponent();
             _settings = settings;
@@ -35,10 +22,13 @@ namespace Wox.Plugin.Url
             NewTabInBrowser.IsChecked = !_settings.OpenInNewBrowserWindow;
         }
 
+        #region Private
+
         private void OnChooseClick(object sender, RoutedEventArgs e)
         {
             var fileBrowserDialog = new OpenFileDialog();
-            fileBrowserDialog.Filter = _woxAPI.GetTranslation("wox_plugin_url_plugin_filter"); ;
+            fileBrowserDialog.Filter = _woxAPI.GetTranslation("wox_plugin_url_plugin_filter");
+            ;
             fileBrowserDialog.CheckFileExists = true;
             fileBrowserDialog.CheckPathExists = true;
             if (fileBrowserDialog.ShowDialog() == true)
@@ -57,5 +47,7 @@ namespace Wox.Plugin.Url
         {
             _settings.OpenInNewBrowserWindow = false;
         }
+
+        #endregion
     }
 }

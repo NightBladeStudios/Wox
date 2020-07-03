@@ -1,19 +1,20 @@
-﻿using System;
-using System.Windows.Forms;
-using System.Windows.Media;
-using System.Windows.Threading;
-using NLog;
-
-using Wox.Image;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Wox.Plugin;
-
-
-namespace Wox.ViewModel
+﻿namespace Wox.ViewModel
 {
+    using System;
+    using System.Windows.Media;
+    using Image;
+    using Infrastructure.Logger;
+    using NLog;
+    using Plugin;
+
     public class ResultViewModel : BaseModel
     {
+        // directly binding will cause unnecessory image load
+        // only binding get will cause load twice or more
+        // so use lazy binding
+        public Lazy<ImageSource> Image { get; set; }
+
+        public Result Result { get; set; }
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public ResultViewModel(Result result)
@@ -21,16 +22,43 @@ namespace Wox.ViewModel
             if (result != null)
             {
                 Result = result;
-                Image = new Lazy<ImageSource>(() =>
-                {
-                    return SetImage(result);
-                });
+                Image = new Lazy<ImageSource>(() => { return SetImage(result); });
             }
         }
 
+        #region Public
+
+        public void UpdateImageCallback(ImageSource image)
+        {
+            Image = new Lazy<ImageSource>(() => image);
+            OnPropertyChanged(nameof(Image));
+        }
+
+        public override bool Equals(object obj)
+        {
+            var r = obj as ResultViewModel;
+            if (r != null)
+                return Result.Equals(r.Result);
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return Result.GetHashCode();
+        }
+
+        public override string ToString()
+        {
+            return Result.ToString();
+        }
+
+        #endregion
+
+        #region Private
+
         private ImageSource SetImage(Result result)
         {
-            string imagePath = result.IcoPath;
+            var imagePath = result.IcoPath;
             if (string.IsNullOrEmpty(imagePath) && result.Icon != null)
             {
                 var r = result;
@@ -48,6 +76,7 @@ namespace Wox.ViewModel
                     return ImageLoader.GetErrorImage();
                 }
             }
+
             try
             {
                 // will get here either when icoPath has value\icon delegate is null\when had exception in delegate
@@ -64,41 +93,6 @@ namespace Wox.ViewModel
             }
         }
 
-        public void UpdateImageCallback(ImageSource image)
-        {
-            Image = new Lazy<ImageSource>(() => image);
-            OnPropertyChanged(nameof(Image));
-        }
-
-        // directly binding will cause unnecessory image load
-        // only binding get will cause load twice or more
-        // so use lazy binding
-        public Lazy<ImageSource> Image { get; set; }
-
-        public Result Result { get; set; }
-
-        public override bool Equals(object obj)
-        {
-            var r = obj as ResultViewModel;
-            if (r != null)
-            {
-                return Result.Equals(r.Result);
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        public override int GetHashCode()
-        {
-            return Result.GetHashCode();
-        }
-
-        public override string ToString()
-        {
-            return Result.ToString();
-        }
-
+        #endregion
     }
 }

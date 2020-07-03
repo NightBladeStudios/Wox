@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_color_plugin_name">Cores</system:String>
     <system:String x:Key="wox_plugin_color_plugin_description">Pré-visualização de cores através dos seus valores hex (teste com #000 no Wox)</system:String>
-    
+
 </ResourceDictionary>

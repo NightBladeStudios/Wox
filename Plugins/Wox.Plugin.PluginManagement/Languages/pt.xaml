@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_plugin_management_plugin_name">Gestão de plugins Wox</system:String>
     <system:String x:Key="wox_plugin_plugin_management_plugin_description">Instalar, remover e atualizar plugins Wox</system:String>
-    
+
 </ResourceDictionary>

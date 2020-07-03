@@ -1,37 +1,33 @@
-﻿using System;
-using System.ComponentModel;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media.Animation;
-using System.Windows.Controls;
-using System.Windows.Forms;
-
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Core.Plugin;
-using Wox.Core.Resource;
-using Wox.Helper;
-using Wox.Infrastructure.UserSettings;
-using Wox.ViewModel;
-using Screen = System.Windows.Forms.Screen;
-using ContextMenuStrip = System.Windows.Forms.ContextMenuStrip;
-using DataFormats = System.Windows.DataFormats;
-using DragEventArgs = System.Windows.DragEventArgs;
-using KeyEventArgs = System.Windows.Input.KeyEventArgs;
-using MessageBox = System.Windows.MessageBox;
-using NotifyIcon = System.Windows.Forms.NotifyIcon;
-
-
-namespace Wox
+﻿namespace Wox
 {
+    using System;
+    using System.ComponentModel;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Forms;
+    using System.Windows.Input;
+    using System.Windows.Media.Animation;
+    using Core.Plugin;
+    using Core.Resource;
+    using Helper;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using ViewModel;
+    using DataFormats = System.Windows.DataFormats;
+    using DragEventArgs = System.Windows.DragEventArgs;
+    using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+    using MessageBox = System.Windows.MessageBox;
+
     public partial class MainWindow
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         private readonly Storyboard _progressBarStoryboard = new Storyboard();
-        private Settings _settings;
         private NotifyIcon _notifyIcon;
-        private MainViewModel _viewModel;
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly Settings _settings;
+        private readonly MainViewModel _viewModel;
 
         public MainWindow(MainViewModel mainVM)
         {
@@ -40,10 +36,31 @@ namespace Wox
             _settings = Settings.Instance;
             InitializeComponent();
         }
+
         public MainWindow()
         {
             InitializeComponent();
         }
+
+        #region MonoBehaviour
+
+        private void OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ChangedButton == MouseButton.Left)
+                try
+                {
+                    DragMove();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // https://github.com/Wox-launcher/Wox/issues/811
+                    Logger.WoxError($"Cannot dray {ex.Message}");
+                }
+        }
+
+        #endregion
+
+        #region Private
 
         private void OnClosing(object sender, CancelEventArgs e)
         {
@@ -71,7 +88,6 @@ namespace Wox
             _viewModel.PropertyChanged += (o, e) =>
             {
                 if (e.PropertyName == nameof(MainViewModel.MainWindowVisibility))
-                {
                     if (Visibility == Visibility.Visible)
                     {
                         Activate();
@@ -84,14 +100,10 @@ namespace Wox
                             _viewModel.LastQuerySelected = true;
                         }
                     }
-                }
             };
             _settings.PropertyChanged += (o, e) =>
             {
-                if (e.PropertyName == nameof(Settings.HideNotifyIcon))
-                {
-                    _notifyIcon.Visible = !_settings.HideNotifyIcon;
-                }
+                if (e.PropertyName == nameof(Settings.HideNotifyIcon)) _notifyIcon.Visible = !_settings.HideNotifyIcon;
             };
             InitializePosition();
         }
@@ -108,7 +120,7 @@ namespace Wox
         {
             _notifyIcon = new NotifyIcon
             {
-                Text = Infrastructure.Constant.Wox,
+                Text = Constant.Wox,
                 Icon = Properties.Resources.app,
                 Visible = !_settings.HideNotifyIcon
             };
@@ -153,40 +165,19 @@ namespace Wox
             _viewModel.ProgressBarVisibility = Visibility.Hidden;
         }
 
-        private void OnMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            if (e.ChangedButton == MouseButton.Left)
-            {
-                try
-                {
-                    DragMove();
-                }
-                catch (InvalidOperationException ex)
-                {
-                    // https://github.com/Wox-launcher/Wox/issues/811
-                    Logger.WoxError($"Cannot dray {ex.Message}");
-                }
-            }
-        }
-
         private void OnPreviewMouseButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender != null && e.OriginalSource != null)
             {
-                var r = (ResultListBox)sender;
-                var d = (DependencyObject)e.OriginalSource;
+                var r = (ResultListBox) sender;
+                var d = (DependencyObject) e.OriginalSource;
                 var item = ItemsControl.ContainerFromElement(r, d) as ListBoxItem;
-                var result = (ResultViewModel)item?.DataContext;
+                var result = (ResultViewModel) item?.DataContext;
                 if (result != null)
                 {
                     if (e.ChangedButton == MouseButton.Left)
-                    {
                         _viewModel.OpenResultCommand.Execute(null);
-                    }
-                    else if (e.ChangedButton == MouseButton.Right)
-                    {
-                        _viewModel.LoadContextMenuCommand.Execute(null);
-                    }
+                    else if (e.ChangedButton == MouseButton.Right) _viewModel.LoadContextMenuCommand.Execute(null);
                 }
             }
         }
@@ -197,16 +188,13 @@ namespace Wox
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 // Note that you can have more than one file.
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var files = (string[]) e.Data.GetData(DataFormats.FileDrop);
                 if (files[0].ToLower().EndsWith(".wox"))
-                {
                     PluginManager.InstallPlugin(files[0]);
-                }
                 else
-                {
                     MessageBox.Show(InternationalizationManager.Instance.GetTranslation("invalidWoxPluginFileFormat"));
-                }
             }
+
             e.Handled = false;
         }
 
@@ -223,10 +211,7 @@ namespace Wox
 
         private void OnDeactivated(object sender, EventArgs e)
         {
-            if (_settings.HideWhenDeactive)
-            {
-                Hide();
-            }
+            if (_settings.HideWhenDeactivated) Hide();
         }
 
         private void UpdatePosition()
@@ -307,6 +292,6 @@ namespace Wox
             }
         }
 
-
+        #endregion
     }
 }

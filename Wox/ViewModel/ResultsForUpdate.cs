@@ -1,13 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Wox.Plugin;
-
-namespace Wox.ViewModel
+﻿namespace Wox.ViewModel
 {
+    using System.Collections.Generic;
+    using System.Threading;
+    using Plugin;
+
     public class ResultsForUpdate
     {
         public List<Result> Results { get; }
@@ -36,6 +32,5 @@ namespace Wox.ViewModel
             Countdown = countdown;
             ID = metadata.ID;
         }
-
     }
 }

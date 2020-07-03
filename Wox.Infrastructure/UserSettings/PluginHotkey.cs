@@ -1,7 +1,7 @@
-﻿using Wox.Plugin;
-
-namespace Wox.Infrastructure.UserSettings
+﻿namespace Wox.Infrastructure.UserSettings
 {
+    using Wox.Plugin;
+
     public class CustomPluginHotkey : BaseModel
     {
         public string Hotkey { get; set; }

@@ -1,40 +1,43 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Runtime.InteropServices;
-using System.Text.RegularExpressions;
-using System.Windows;
-using System.Windows.Controls;
-using Mages.Core;
-using Wox.Infrastructure.Storage;
-using Wox.Plugin.Caculator.ViewModels;
-using Wox.Plugin.Caculator.Views;
-
-namespace Wox.Plugin.Caculator
+﻿namespace Wox.Plugin.Calculator
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Runtime.InteropServices;
+    using System.Text.RegularExpressions;
+    using System.Windows;
+    using System.Windows.Controls;
+    using Infrastructure.Storage;
+    using Mages.Core;
+    using ViewModels;
+    using Views;
+
     public class Main : IPlugin, IPluginI18n, ISavable, ISettingProvider
     {
         private static readonly Regex RegValidExpressChar = new Regex(
-                        @"^(" +
-                        @"ceil|floor|exp|pi|e|max|min|det|abs|log|ln|sqrt|" +
-                        @"sin|cos|tan|arcsin|arccos|arctan|" +
-                        @"eigval|eigvec|eig|sum|polar|plot|round|sort|real|zeta|" +
-                        @"bin2dec|hex2dec|oct2dec|" +
-                        @"==|~=|&&|\|\||" +
-                        @"[ei]|[0-9]|[\+\-\*\/\^\., ""]|[\(\)\|\!\[\]]" +
-                        @")+$", RegexOptions.Compiled);
+            @"^(" +
+            @"ceil|floor|exp|pi|e|max|min|det|abs|log|ln|sqrt|" +
+            @"sin|cos|tan|arcsin|arccos|arctan|" +
+            @"eigval|eigvec|eig|sum|polar|plot|round|sort|real|zeta|" +
+            @"bin2dec|hex2dec|oct2dec|" +
+            @"==|~=|&&|\|\||" +
+            @"[ei]|[0-9]|[\+\-\*\/\^\., ""]|[\(\)\|\!\[\]]" +
+            @")+$", RegexOptions.Compiled);
+
         private static readonly Regex RegBrackets = new Regex(@"[\(\)\[\]]", RegexOptions.Compiled);
         private static readonly Engine MagesEngine;
-        private PluginInitContext Context { get; set; }
 
         private static Settings _settings;
         private static SettingsViewModel _viewModel;
+        private PluginInitContext Context { get; set; }
 
         static Main()
         {
-            MagesEngine = new Engine();            
+            MagesEngine = new Engine();
         }
-        
+
+        #region Public
+
         public void Init(PluginInitContext context)
         {
             Context = context;
@@ -45,10 +48,7 @@ namespace Wox.Plugin.Caculator
 
         public List<Result> Query(Query query)
         {
-            if (!CanCalculate(query))
-            {
-                return new List<Result>();
-            }
+            if (!CanCalculate(query)) return new List<Result>();
 
             try
             {
@@ -63,8 +63,8 @@ namespace Wox.Plugin.Caculator
 
                 if (!string.IsNullOrEmpty(result?.ToString()))
                 {
-                    decimal roundedResult = Math.Round(Convert.ToDecimal(result), _settings.MaxDecimalPlaces, MidpointRounding.AwayFromZero);
-                    string newResult = ChangeDecimalSeparator(roundedResult, GetDecimalSeparator());
+                    var roundedResult = Math.Round(Convert.ToDecimal(result), _settings.MaxDecimalPlaces, MidpointRounding.AwayFromZero);
+                    var newResult = ChangeDecimalSeparator(roundedResult, GetDecimalSeparator());
 
                     return new List<Result>
                     {
@@ -87,7 +87,7 @@ namespace Wox.Plugin.Caculator
                                     return false;
                                 }
                             }
-                        } 
+                        }
                     };
                 }
             }
@@ -99,72 +99,6 @@ namespace Wox.Plugin.Caculator
             return new List<Result>();
         }
 
-        private bool CanCalculate(Query query)
-        {
-            // Don't execute when user only input "e" or "i" keyword
-            if (query.Search.Length < 2)
-            {
-                return false;
-            }
-
-            if (!RegValidExpressChar.IsMatch(query.Search))
-            {
-                return false;
-            }
-                
-            if (!IsBracketComplete(query.Search))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private string ChangeDecimalSeparator(decimal value, string newDecimalSeparator)
-        {
-            if (String.IsNullOrEmpty(newDecimalSeparator))
-            {
-                return value.ToString();
-            }
-
-            var numberFormatInfo = new NumberFormatInfo
-            {
-                NumberDecimalSeparator = newDecimalSeparator
-            };
-            return value.ToString(numberFormatInfo);
-        }
-
-        private string GetDecimalSeparator()
-        {
-            string systemDecimalSeperator = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
-            switch (_settings.DecimalSeparator)
-            {
-                case DecimalSeparator.UseSystemLocale: return systemDecimalSeperator;
-                case DecimalSeparator.Dot: return ".";
-                case DecimalSeparator.Comma: return ",";
-                default: return systemDecimalSeperator;
-            }
-        }
-
-        private bool IsBracketComplete(string query)
-        {
-            var matchs = RegBrackets.Matches(query);
-            var leftBracketCount = 0;
-            foreach (Match match in matchs)
-            {
-                if (match.Value == "(" || match.Value == "[")
-                {
-                    leftBracketCount++;
-                }
-                else
-                {
-                    leftBracketCount--;
-                }
-            }
-
-            return leftBracketCount == 0;
-        }
-        
         public string GetTranslatedPluginTitle()
         {
             return Context.API.GetTranslation("wox_plugin_caculator_plugin_name");
@@ -184,5 +118,59 @@ namespace Wox.Plugin.Caculator
         {
             _viewModel.Save();
         }
+
+        #endregion
+
+        #region Private
+
+        private bool CanCalculate(Query query)
+        {
+            // Don't execute when user only input "e" or "i" keyword
+            if (query.Search.Length < 2) return false;
+
+            if (!RegValidExpressChar.IsMatch(query.Search)) return false;
+
+            if (!IsBracketComplete(query.Search)) return false;
+
+            return true;
+        }
+
+        private string ChangeDecimalSeparator(decimal value, string newDecimalSeparator)
+        {
+            if (string.IsNullOrEmpty(newDecimalSeparator)) return value.ToString();
+
+            var numberFormatInfo = new NumberFormatInfo
+            {
+                NumberDecimalSeparator = newDecimalSeparator
+            };
+            return value.ToString(numberFormatInfo);
+        }
+
+        private string GetDecimalSeparator()
+        {
+            var systemDecimalSeparator = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+            switch (_settings.DecimalSeparator)
+            {
+                case DecimalSeparator.UseSystemLocale: return systemDecimalSeparator;
+                case DecimalSeparator.Dot: return ".";
+                case DecimalSeparator.Comma: return ",";
+                default: return systemDecimalSeparator;
+            }
+        }
+
+        private bool IsBracketComplete(string query)
+        {
+            var matches = RegBrackets.Matches(query);
+            var leftBracketCount = 0;
+            foreach (Match match in matches)
+                if (match.Value == "(" || match.Value == "[")
+                    leftBracketCount++;
+                else
+                    leftBracketCount--;
+
+            return leftBracketCount == 0;
+        }
+
+        #endregion
     }
 }

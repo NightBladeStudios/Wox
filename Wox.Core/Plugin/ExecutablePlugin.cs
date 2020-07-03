@@ -1,13 +1,12 @@
-﻿using System;
-using System.Diagnostics;
-using Wox.Plugin;
-
-namespace Wox.Core.Plugin
+﻿namespace Wox.Core.Plugin
 {
+    using System.Diagnostics;
+    using Wox.Plugin;
+
     internal class ExecutablePlugin : JsonRPCPlugin
     {
-        private readonly ProcessStartInfo _startInfo;
         public override string SupportedLanguage { get; set; } = AllowedLanguage.Executable;
+        private readonly ProcessStartInfo _startInfo;
 
         public ExecutablePlugin(string filename)
         {
@@ -21,12 +20,14 @@ namespace Wox.Core.Plugin
             };
         }
 
+        #region Protected
+
         protected override string ExecuteQuery(Query query)
         {
-            JsonRPCServerRequestModel request = new JsonRPCServerRequestModel
+            var request = new JsonRPCServerRequestModel
             {
                 Method = "query",
-                Parameters = new object[] { query.Search },
+                Parameters = new object[] {query.Search}
             };
 
             _startInfo.Arguments = $"\"{request}\"";
@@ -40,15 +41,19 @@ namespace Wox.Core.Plugin
             return Execute(_startInfo);
         }
 
-        protected override string ExecuteContextMenu(Result selectedResult) {
-            JsonRPCServerRequestModel request = new JsonRPCServerRequestModel {
+        protected override string ExecuteContextMenu(Result selectedResult)
+        {
+            var request = new JsonRPCServerRequestModel
+            {
                 Method = "contextmenu",
-                Parameters = new object[] { selectedResult.ContextData },
+                Parameters = new[] {selectedResult.ContextData}
             };
 
             _startInfo.Arguments = $"\"{request}\"";
 
             return Execute(_startInfo);
         }
+
+        #endregion
     }
 }

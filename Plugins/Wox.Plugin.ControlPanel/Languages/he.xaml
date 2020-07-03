@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_controlpanel_plugin_name">לוח בקרה</system:String>
     <system:String x:Key="wox_plugin_controlpanel_plugin_description">חפש בתוך לוח הבקרה</system:String>
-    
+
 </ResourceDictionary>

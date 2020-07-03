@@ -12,7 +12,7 @@
     <system:String x:Key="wox_plugin_websearch_pls_select_web_search">web検索を選択してください</system:String>
     <system:String x:Key="wox_plugin_websearch_delete_warning">本当に{0}を削除しますか?</system:String>
 
-    
+
     <!--web search edit-->
     <system:String x:Key="wox_plugin_websearch_title">タイトル</system:String>
     <system:String x:Key="wox_plugin_websearch_enable">有効</system:String>

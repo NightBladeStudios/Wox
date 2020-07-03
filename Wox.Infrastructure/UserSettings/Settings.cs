@@ -1,33 +1,18 @@
-using System;
-using System.Collections.ObjectModel;
-using System.Drawing;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.Storage;
-using Wox.Plugin;
-
 namespace Wox.Infrastructure.UserSettings
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Drawing;
+    using Logger;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
+    using NLog;
+    using Storage;
+    using Wox.Plugin;
+
     public class Settings : BaseModel
     {
-        #region Save/Load
-
-        public static void Save()
-        {
-            _storage.Save();
-        }
-
-        private static WoxJsonStorage<Settings> _storage = new WoxJsonStorage<Settings>();
         public static Settings Instance;
-
-        public static void Initialize()
-        {
-            Instance = _storage.Load();
-        }
-
-        #endregion
 
         public string Hotkey { get; set; } = "Alt + Space";
         public string Language { get; set; } = "en";
@@ -50,19 +35,16 @@ namespace Wox.Infrastructure.UserSettings
         /// </summary>
         public bool ShouldUsePinyin { get; set; } = false;
 
-        internal StringMatcher.SearchPrecisionScore QuerySearchPrecision { get; private set; } = StringMatcher.SearchPrecisionScore.Regular;
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
-
         [JsonIgnore]
         public string QuerySearchPrecisionString
         {
-            get { return QuerySearchPrecision.ToString(); }
+            get => QuerySearchPrecision.ToString();
             set
             {
                 try
                 {
-                    var precisionScore = (StringMatcher.SearchPrecisionScore)Enum
-                                            .Parse(typeof(StringMatcher.SearchPrecisionScore), value);
+                    var precisionScore = (StringMatcher.SearchPrecisionScore) Enum
+                        .Parse(typeof(StringMatcher.SearchPrecisionScore), value);
 
                     QuerySearchPrecision = precisionScore;
                     StringMatcher.Instance.UserSettingSearchPrecision = precisionScore;
@@ -80,7 +62,7 @@ namespace Wox.Infrastructure.UserSettings
         }
 
         public bool AutoUpdates { get; set; } = true;
-        public bool UpdateToPrereleases { get; set; } = false;
+        public bool UpdateToPreReleases { get; set; } = false;
 
         public double WindowLeft { get; set; }
         public double WindowTop { get; set; }
@@ -90,6 +72,7 @@ namespace Wox.Infrastructure.UserSettings
         // Order defaults to 0 or -1, so 1 will let this property appear last
         [JsonProperty(Order = 1)]
         public PluginsSettings PluginSettings { get; set; } = new PluginsSettings();
+
         public ObservableCollection<CustomPluginHotkey> CustomPluginHotkeys { get; set; } = new ObservableCollection<CustomPluginHotkey>();
 
         [Obsolete]
@@ -103,18 +86,19 @@ namespace Wox.Infrastructure.UserSettings
 
         public bool StartWoxOnSystemStartup { get; set; } = true;
         public bool HideOnStartup { get; set; }
-        bool _hideNotifyIcon { get; set; }
+
         public bool HideNotifyIcon
         {
-            get { return _hideNotifyIcon; }
+            get => _hideNotifyIcon;
             set
             {
                 _hideNotifyIcon = value;
                 OnPropertyChanged();
             }
         }
+
         public bool LeaveCmdOpen { get; set; }
-        public bool HideWhenDeactive { get; set; } = true;
+        public bool HideWhenDeactivated { get; set; } = true;
         public bool RememberLastLaunchLocation { get; set; }
         public bool IgnoreHotkeysOnFullscreen { get; set; }
 
@@ -122,6 +106,26 @@ namespace Wox.Infrastructure.UserSettings
 
         [JsonConverter(typeof(StringEnumConverter))]
         public LastQueryMode LastQueryMode { get; set; } = LastQueryMode.Selected;
+
+        internal StringMatcher.SearchPrecisionScore QuerySearchPrecision { get; private set; } = StringMatcher.SearchPrecisionScore.Regular;
+
+        private static readonly WoxJsonStorage<Settings> _storage = new WoxJsonStorage<Settings>();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private bool _hideNotifyIcon { get; set; }
+
+        #region Public
+
+        public static void Save()
+        {
+            _storage.Save();
+        }
+
+        public static void Initialize()
+        {
+            Instance = _storage.Load();
+        }
+
+        #endregion
     }
 
     public enum LastQueryMode

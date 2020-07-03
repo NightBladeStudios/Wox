@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_pluginindicator_plugin_name">Plugin Indikator</system:String>
     <system:String x:Key="wox_plugin_pluginindicator_plugin_description">Stellt Vorschläge für Plugin-Befehle bereit</system:String>
-    
+
 </ResourceDictionary>

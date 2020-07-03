@@ -3,6 +3,6 @@ using System.Windows;
 
 [assembly: AssemblyTitle("Wox")]
 [assembly: ThemeInfo(
-    ResourceDictionaryLocation.None, 
+    ResourceDictionaryLocation.None,
     ResourceDictionaryLocation.SourceAssembly
 )]

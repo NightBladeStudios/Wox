@@ -1,21 +1,12 @@
-﻿using System;
-using System.Collections.ObjectModel;
-using Newtonsoft.Json;
-using Wox.Plugin.WebSearch.SuggestionSources;
-
-namespace Wox.Plugin.WebSearch
+﻿namespace Wox.Plugin.WebSearch
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using Newtonsoft.Json;
+    using SuggestionSources;
+
     public class Settings : BaseModel
     {
-        public Settings()
-        {
-            SelectedSuggestion = Suggestions[0];
-            if (SearchSources.Count > 0)
-            {
-                SelectedSearchSource = SearchSources[0];
-            }
-        }
-
         public ObservableCollection<SearchSource> SearchSources { get; set; } = new ObservableCollection<SearchSource>
         {
             new SearchSource
@@ -194,7 +185,8 @@ namespace Wox.Plugin.WebSearch
         public bool EnableSuggestion { get; set; }
 
         [JsonIgnore]
-        public SuggestionSource[] Suggestions { get; set; } = {
+        public SuggestionSource[] Suggestions { get; set; } =
+        {
             new Google(),
             new Baidu()
         };
@@ -207,21 +199,23 @@ namespace Wox.Plugin.WebSearch
         /// </summary>
         public string Suggestion
         {
-            get { return SelectedSuggestion.ToString(); }
+            get => SelectedSuggestion.ToString();
             set
             {
                 foreach (var s in Suggestions)
-                {
                     if (string.Equals(s.ToString(), value, StringComparison.OrdinalIgnoreCase))
-                    {
                         SelectedSuggestion = s;
-                    }
-                }
             }
         }
 
         public string BrowserPath { get; set; }
 
         public bool OpenInNewBrowser { get; set; } = true;
+
+        public Settings()
+        {
+            SelectedSuggestion = Suggestions[0];
+            if (SearchSources.Count > 0) SelectedSearchSource = SearchSources[0];
+        }
     }
 }

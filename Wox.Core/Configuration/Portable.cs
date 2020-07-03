@@ -1,84 +1,55 @@
-using Microsoft.Win32;
-using Squirrel;
-using System;
-using System.IO;
-using System.Reflection;
-using System.Windows;
-using NLog;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-
 namespace Wox.Core.Configuration
 {
+    using System;
+    using System.IO;
+    using System.Reflection;
+    using System.Windows;
+    using Infrastructure;
+    using Infrastructure.UserSettings;
+    using Microsoft.Win32;
+    using NLog;
+    using Squirrel;
+
     public class Portable : IPortable
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
-
-        /// <summary>
-        /// As at Squirrel.Windows version 1.5.2, UpdateManager needs to be disposed after finish
-        /// </summary>
-        /// <returns></returns>
-        private UpdateManager NewUpdateManager()
-        {
-            return new UpdateManager(string.Empty, Constant.Wox, Constant.RootDirectory);
-        }
+        #region Public
 
         public void DisablePortableMode()
         {
-            try
-            {
-                MoveUserDataFolder(DataLocation.PortableDataPath, DataLocation.RoamingDataPath);
+            MoveUserDataFolder(DataLocation.PortableDataPath, DataLocation.RoamingDataPath);
 #if DEBUG
-                // Create shortcuts and uninstaller are not required in debug mode, 
-                // otherwise will repoint the path of the actual installed production version to the debug version
+            // Create shortcuts and uninstaller are not required in debug mode, 
+            // otherwise will repoint the path of the actual installed production version to the debug version
 #else
                 CreateShortcuts();
                 CreateUninstallerEntry();
 #endif
-                IndicateDeletion(DataLocation.PortableDataPath);
+            IndicateDeletion(DataLocation.PortableDataPath);
 
-                MessageBox.Show("Wox needs to restart to finish disabling portable mode, " +
-                    "after the restart your portable data profile will be deleted and roaming data profile kept");
+            MessageBox.Show("Wox needs to restart to finish disabling portable mode, " +
+                            "after the restart your portable data profile will be deleted and roaming data profile kept");
 
-                UpdateManager.RestartApp();
-            }
-            catch (Exception e)
-            {
-#if !DEBUG
-                Logger.WoxError("Error occured while disabling portable mode", e);
-#endif
-                throw;
-            }
+            UpdateManager.RestartApp();
         }
 
         public void EnablePortableMode()
         {
-            try
-            {
-                MoveUserDataFolder(DataLocation.RoamingDataPath, DataLocation.PortableDataPath);
+            MoveUserDataFolder(DataLocation.RoamingDataPath, DataLocation.PortableDataPath);
 #if DEBUG
-                // Remove shortcuts and uninstaller are not required in debug mode, 
-                // otherwise will delete the actual installed production version
+            // Remove shortcuts and uninstaller are not required in debug mode, 
+            // otherwise will delete the actual installed production version
 #else
                 RemoveShortcuts();
                 RemoveUninstallerEntry();
 #endif
-                IndicateDeletion(DataLocation.RoamingDataPath);
+            IndicateDeletion(DataLocation.RoamingDataPath);
 
-                MessageBox.Show("Wox needs to restart to finish enabling portable mode, " +
-                    "after the restart your roaming data profile will be deleted and portable data profile kept");
+            MessageBox.Show("Wox needs to restart to finish enabling portable mode, " +
+                            "after the restart your roaming data profile will be deleted and portable data profile kept");
 
-                UpdateManager.RestartApp();
-            }
-            catch (Exception e)
-            {
-#if !DEBUG
-                Logger.WoxError("Error occured while enabling portable mode", e);
-#endif
-                throw;
-            }
+            UpdateManager.RestartApp();
         }
 
         public void RemoveShortcuts()
@@ -102,13 +73,13 @@ namespace Wox.Core.Configuration
 
         public void MoveUserDataFolder(string fromLocation, string toLocation)
         {
-            FilesFolders.Copy(fromLocation, toLocation);
+            fromLocation.Copy(toLocation);
             VerifyUserDataAfterMove(fromLocation, toLocation);
         }
 
         public void VerifyUserDataAfterMove(string fromLocation, string toLocation)
         {
-            FilesFolders.VerifyBothFolderFilesEqual(fromLocation, toLocation);
+            fromLocation.VerifyBothFolderFilesEqual(toLocation);
         }
 
         public void CreateShortcuts()
@@ -128,7 +99,10 @@ namespace Wox.Core.Configuration
             // NB: Sometimes the Uninstall key doesn't exist
             using (var parentKey =
                 RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default)
-                    .CreateSubKey("Uninstall", RegistryKeyPermissionCheck.ReadWriteSubTree)) {; }
+                    .CreateSubKey("Uninstall", RegistryKeyPermissionCheck.ReadWriteSubTree))
+            {
+                ;
+            }
 
             var key = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default)
                 .CreateSubKey(uninstallRegSubKey + "\\" + Constant.Wox, RegistryKeyPermissionCheck.ReadWriteSubTree);
@@ -140,23 +114,19 @@ namespace Wox.Core.Configuration
             }
         }
 
-        internal void IndicateDeletion(string filePathTodelete)
-        {
-            using (StreamWriter sw = File.CreateText(filePathTodelete + "\\" + DataLocation.DeletionIndicatorFile)){}
-        }
-
-        ///<summary>
-        ///This method should be run at first before all methods during start up and should be run before determining which data location
-        ///will be used for Wox.
-        ///</summary>
+        /// <summary>
+        /// This method should be run at first before all methods during start up and should be run before determining which data
+        /// location
+        /// will be used for Wox.
+        /// </summary>
         public void PreStartCleanUpAfterPortabilityUpdate()
         {
             // Specify here so this method does not rely on other environment variables to initialise
             var portableDataPath = Path.Combine(Directory.GetParent(Assembly.GetExecutingAssembly().Location.NonNull()).ToString(), "UserData");
             var roamingDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Wox");
 
-            bool DataLocationPortableDeleteRequired = false;
-            bool DataLocationRoamingDeleteRequired = false;
+            var DataLocationPortableDeleteRequired = false;
+            var DataLocationRoamingDeleteRequired = false;
 
             if ((roamingDataPath + "\\" + DataLocation.DeletionIndicatorFile).FileExits())
                 DataLocationRoamingDeleteRequired = true;
@@ -166,13 +136,13 @@ namespace Wox.Core.Configuration
 
             if (DataLocationRoamingDeleteRequired)
             {
-                FilesFolders.RemoveFolderIfExists(roamingDataPath);
+                roamingDataPath.RemoveFolderIfExists();
 
                 if (MessageBox.Show("Wox has detected you enabled portable mode, " +
                                     "would you like to move it to a different location?", string.Empty,
-                                    MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                        MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
-                    FilesFolders.OpenLocationInExporer(Constant.RootDirectory);
+                    FilesFolders.OpenLocationInExporter(Constant.RootDirectory);
 
                     Environment.Exit(0);
                 }
@@ -180,14 +150,12 @@ namespace Wox.Core.Configuration
                 return;
             }
 
-            if(DataLocationPortableDeleteRequired)
+            if (DataLocationPortableDeleteRequired)
             {
-                FilesFolders.RemoveFolderIfExists(portableDataPath);
+                portableDataPath.RemoveFolderIfExists();
 
                 MessageBox.Show("Wox has detected you disabled portable mode, " +
-                                    "the relevant shortcuts and uninstaller entry have been created");
-
-                return;
+                                "the relevant shortcuts and uninstaller entry have been created");
             }
         }
 
@@ -196,16 +164,42 @@ namespace Wox.Core.Configuration
             var roamingLocationExists = DataLocation.RoamingDataPath.LocationExists();
             var portableLocationExists = DataLocation.PortableDataPath.LocationExists();
 
-            if(roamingLocationExists && portableLocationExists)
+            if (roamingLocationExists && portableLocationExists)
             {
                 MessageBox.Show(string.Format("Wox detected your user data exists both in {0} and " +
-                                    "{1}. {2}{2}Please delete {1} in order to proceed. No changes have occured.", 
-                                    DataLocation.PortableDataPath, DataLocation.RoamingDataPath, Environment.NewLine));
+                                              "{1}. {2}{2}Please delete {1} in order to proceed. No changes have occured.",
+                    DataLocation.PortableDataPath, DataLocation.RoamingDataPath, Environment.NewLine));
 
                 return false;
             }
 
             return true;
         }
+
+        #endregion
+
+        #region Internal
+
+        internal void IndicateDeletion(string filePathToDelete)
+        {
+            using (var sw = File.CreateText(filePathToDelete + "\\" + DataLocation.DeletionIndicatorFile))
+            {
+            }
+        }
+
+        #endregion
+
+        #region Private
+
+        /// <summary>
+        /// As at Squirrel.Windows version 1.5.2, UpdateManager needs to be disposed after finish
+        /// </summary>
+        /// <returns></returns>
+        private UpdateManager NewUpdateManager()
+        {
+            return new UpdateManager(string.Empty, Constant.Wox, Constant.RootDirectory);
+        }
+
+        #endregion
     }
 }

@@ -1,75 +1,71 @@
-﻿using System;
-using System.IO;
-using System.Windows;
-using ICSharpCode.SharpZipLib.Zip;
-using Newtonsoft.Json;
-using Wox.Plugin;
-
-namespace Wox.Core.Plugin
+﻿namespace Wox.Core.Plugin
 {
+    using System;
+    using System.IO;
+    using System.Windows;
+    using ICSharpCode.SharpZipLib.Zip;
+    using Infrastructure.UserSettings;
+    using Newtonsoft.Json;
+    using Wox.Plugin;
+
     internal class PluginInstaller
     {
+        #region Internal
+
         internal static void Install(string path)
         {
             if (File.Exists(path))
             {
-                string tempFoler = Path.Combine(Path.GetTempPath(), "wox\\plugins");
-                if (Directory.Exists(tempFoler))
-                {
-                    Directory.Delete(tempFoler, true);
-                }
+                var tempFoler = Path.Combine(Path.GetTempPath(), "wox\\plugins");
+                if (Directory.Exists(tempFoler)) Directory.Delete(tempFoler, true);
                 UnZip(path, tempFoler, true);
 
-                string iniPath = Path.Combine(tempFoler, PluginConfig.PluginConfigName);
+                var iniPath = Path.Combine(tempFoler, PluginConfig.PluginConfigName);
                 if (!File.Exists(iniPath))
                 {
                     MessageBox.Show("Install failed: plugin config is missing");
                     return;
                 }
 
-                PluginMetadata plugin = GetMetadataFromJson(tempFoler);
+                var plugin = GetMetadataFromJson(tempFoler);
                 if (plugin == null || plugin.Name == null)
                 {
                     MessageBox.Show("Install failed: plugin config is invalid");
                     return;
                 }
 
-                string pluginFolerPath = Infrastructure.UserSettings.DataLocation.PluginsDirectory;
+                var pluginFolerPath = DataLocation.PluginsDirectory;
 
-                string newPluginName = plugin.Name
-                    .Replace("/", "_")
-                    .Replace("\\", "_")
-                    .Replace(":", "_")
-                    .Replace("<", "_")
-                    .Replace(">", "_")
-                    .Replace("?", "_")
-                    .Replace("*", "_")
-                    .Replace("|", "_")
-                    + "-" + Guid.NewGuid();
-                string newPluginPath = Path.Combine(pluginFolerPath, newPluginName);
-                string content = $"Do you want to install following plugin?{Environment.NewLine}{Environment.NewLine}" +
-                                 $"Name: {plugin.Name}{Environment.NewLine}" +
-                                 $"Version: {plugin.Version}{Environment.NewLine}" +
-                                 $"Author: {plugin.Author}";
-                PluginPair existingPlugin = PluginManager.GetPluginForId(plugin.ID);
+                var newPluginName = plugin.Name
+                                        .Replace("/", "_")
+                                        .Replace("\\", "_")
+                                        .Replace(":", "_")
+                                        .Replace("<", "_")
+                                        .Replace(">", "_")
+                                        .Replace("?", "_")
+                                        .Replace("*", "_")
+                                        .Replace("|", "_")
+                                    + "-" + Guid.NewGuid();
+                var newPluginPath = Path.Combine(pluginFolerPath, newPluginName);
+                var content = $"Do you want to install following plugin?{Environment.NewLine}{Environment.NewLine}" +
+                              $"Name: {plugin.Name}{Environment.NewLine}" +
+                              $"Version: {plugin.Version}{Environment.NewLine}" +
+                              $"Author: {plugin.Author}";
+                var existingPlugin = PluginManager.GetPluginForId(plugin.ID);
 
                 if (existingPlugin != null)
-                {
                     content = $"Do you want to update following plugin?{Environment.NewLine}{Environment.NewLine}" +
                               $"Name: {plugin.Name}{Environment.NewLine}" +
                               $"Old Version: {existingPlugin.Metadata.Version}" +
                               $"{Environment.NewLine}New Version: {plugin.Version}" +
                               $"{Environment.NewLine}Author: {plugin.Author}";
-                }
 
                 var result = MessageBox.Show(content, "Install plugin", MessageBoxButton.YesNo, MessageBoxImage.Question);
                 if (result == MessageBoxResult.Yes)
                 {
                     if (existingPlugin != null && Directory.Exists(existingPlugin.Metadata.PluginDirectory))
-                    {
                         //when plugin is in use, we can't delete them. That's why we need to make plugin folder a random name
                         File.Create(Path.Combine(existingPlugin.Metadata.PluginDirectory, "NeedDelete.txt")).Close();
-                    }
 
                     UnZip(path, newPluginPath, true);
                     Directory.Delete(tempFoler, true);
@@ -84,23 +80,22 @@ namespace Wox.Core.Plugin
                     //}
                     if (MessageBox.Show($"You have installed plugin {plugin.Name} successfully.{Environment.NewLine}" +
                                         "Restart Wox to take effect?",
-                                        "Install plugin", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
-                    {
-                        PluginManager.API.RestarApp();
-                    }
+                            "Install plugin", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+                        PluginManager.API.RestartApp();
                 }
             }
         }
 
+        #endregion
+
+        #region Private
+
         private static PluginMetadata GetMetadataFromJson(string pluginDirectory)
         {
-            string configPath = Path.Combine(pluginDirectory, PluginConfig.PluginConfigName);
+            var configPath = Path.Combine(pluginDirectory, PluginConfig.PluginConfigName);
             PluginMetadata metadata;
 
-            if (!File.Exists(configPath))
-            {
-                return null;
-            }
+            if (!File.Exists(configPath)) return null;
 
             try
             {
@@ -109,7 +104,7 @@ namespace Wox.Core.Plugin
             }
             catch (Exception)
             {
-                string error = $"Parse plugin config {configPath} failed: json format is not valid";
+                var error = $"Parse plugin config {configPath} failed: json format is not valid";
 #if (DEBUG)
                 {
                     throw new Exception(error);
@@ -121,7 +116,7 @@ namespace Wox.Core.Plugin
 
             if (!AllowedLanguage.IsAllowed(metadata.Language))
             {
-                string error = $"Parse plugin config {configPath} failed: invalid language {metadata.Language}";
+                var error = $"Parse plugin config {configPath} failed: invalid language {metadata.Language}";
 #if (DEBUG)
                 {
                     throw new Exception(error);
@@ -129,9 +124,10 @@ namespace Wox.Core.Plugin
 #endif
                 return null;
             }
+
             if (!File.Exists(metadata.ExecuteFilePath))
             {
-                string error = $"Parse plugin config {configPath} failed: ExecuteFile {metadata.ExecuteFilePath} didn't exist";
+                var error = $"Parse plugin config {configPath} failed: ExecuteFile {metadata.ExecuteFilePath} didn't exist";
 #if (DEBUG)
                 {
                     throw new Exception(error);
@@ -144,7 +140,7 @@ namespace Wox.Core.Plugin
         }
 
         /// <summary>
-        /// unzip 
+        /// unzip
         /// </summary>
         /// <param name="zipedFile">The ziped file.</param>
         /// <param name="strDirectory">The STR directory.</param>
@@ -156,47 +152,46 @@ namespace Wox.Core.Plugin
             if (!strDirectory.EndsWith("\\"))
                 strDirectory = strDirectory + "\\";
 
-            using (ZipInputStream s = new ZipInputStream(File.OpenRead(zipedFile)))
+            using (var s = new ZipInputStream(File.OpenRead(zipedFile)))
             {
                 ZipEntry theEntry;
 
                 while ((theEntry = s.GetNextEntry()) != null)
                 {
-                    string directoryName = "";
-                    string pathToZip = "";
+                    var directoryName = "";
+                    var pathToZip = "";
                     pathToZip = theEntry.Name;
 
                     if (pathToZip != "")
                         directoryName = Path.GetDirectoryName(pathToZip) + "\\";
 
-                    string fileName = Path.GetFileName(pathToZip);
+                    var fileName = Path.GetFileName(pathToZip);
 
                     Directory.CreateDirectory(strDirectory + directoryName);
 
                     if (fileName != "")
-                    {
-                        if ((File.Exists(strDirectory + directoryName + fileName) && overWrite) || (!File.Exists(strDirectory + directoryName + fileName)))
-                        {
-                            using (FileStream streamWriter = File.Create(strDirectory + directoryName + fileName))
+                        if (File.Exists(strDirectory + directoryName + fileName) && overWrite || !File.Exists(strDirectory + directoryName + fileName))
+                            using (var streamWriter = File.Create(strDirectory + directoryName + fileName))
                             {
-                                byte[] data = new byte[2048];
+                                var data = new byte[2048];
                                 while (true)
                                 {
-                                    int size = s.Read(data, 0, data.Length);
+                                    var size = s.Read(data, 0, data.Length);
 
                                     if (size > 0)
                                         streamWriter.Write(data, 0, size);
                                     else
                                         break;
                                 }
+
                                 streamWriter.Close();
                             }
-                        }
-                    }
                 }
 
                 s.Close();
             }
         }
+
+        #endregion
     }
 }

@@ -1,23 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public class Query
     {
-        internal Query() { }
+        /// <summary>
+        /// Query can be splited into multiple terms by whitespace
+        /// </summary>
+        public const string TermSeparator = " ";
 
         /// <summary>
-        /// to allow unit tests for plug ins
+        /// User can set multiple action keywords seperated by ';'
         /// </summary>
-        public Query(string rawQuery, string search, string[] terms, string actionKeyword = "")
-        {
-            Search = search;
-            RawQuery = rawQuery;
-            Terms = terms;
-            ActionKeyword = actionKeyword;
-        }
+        public const string ActionKeywordSeparator = ";";
+
+        /// <summary>
+        /// '*' is used for System Plugin
+        /// </summary>
+        public const string GlobalPluginWildcardSign = "*";
 
         /// <summary>
         /// Raw query, this includes action keyword if it has
@@ -28,7 +30,7 @@ namespace Wox.Plugin
         /// <summary>
         /// Search part of a query.
         /// This will not include action keyword if exclusive plugin gets it, otherwise it should be same as RawQuery.
-        /// Since we allow user to switch a exclusive plugin to generic plugin, 
+        /// Since we allow user to switch a exclusive plugin to generic plugin,
         /// so this property will always give you the "real" query part of the query
         /// </summary>
         public string Search { get; internal set; }
@@ -37,20 +39,6 @@ namespace Wox.Plugin
         /// The raw query splited into a string array.
         /// </summary>
         public string[] Terms { get; set; }
-
-        /// <summary>
-        /// Query can be splited into multiple terms by whitespace
-        /// </summary>
-        public const string TermSeperater = " ";
-        /// <summary>
-        /// User can set multiple action keywords seperated by ';'
-        /// </summary>
-        public const string ActionKeywordSeperater = ";";
-
-        /// <summary>
-        /// '*' is used for System Plugin
-        /// </summary>
-        public const string GlobalPluginWildcardSign = "*";
 
         public string ActionKeyword { get; set; }
 
@@ -67,7 +55,7 @@ namespace Wox.Plugin
             get
             {
                 var index = string.IsNullOrEmpty(ActionKeyword) ? 1 : 2;
-                return string.Join(TermSeperater, Terms.Skip(index).ToArray());
+                return string.Join(TermSeparator, Terms.Skip(index).ToArray());
             }
         }
 
@@ -81,6 +69,44 @@ namespace Wox.Plugin
         /// </summary>
         public string ThirdSearch => SplitSearch(2);
 
+        [Obsolete("Use ActionKeyword, this property will be removed in v1.4.0")]
+        public string ActionName { get; internal set; }
+
+        [Obsolete("Use Search instead, this property will be removed in v1.4.0")]
+        public List<string> ActionParameters { get; internal set; }
+
+        [Obsolete("Use Search instead, this method will be removed in v1.4.0")]
+        public string GetAllRemainingParameter()
+        {
+            return Search;
+        }
+
+        internal Query()
+        {
+        }
+
+        /// <summary>
+        /// to allow unit tests for plug ins
+        /// </summary>
+        public Query(string rawQuery, string search, string[] terms, string actionKeyword = "")
+        {
+            Search = search;
+            RawQuery = rawQuery;
+            Terms = terms;
+            ActionKeyword = actionKeyword;
+        }
+
+        #region Public
+
+        public override string ToString()
+        {
+            return RawQuery;
+        }
+
+        #endregion
+
+        #region Private
+
         private string SplitSearch(int index)
         {
             try
@@ -93,15 +119,6 @@ namespace Wox.Plugin
             }
         }
 
-        public override string ToString() => RawQuery;
-
-        [Obsolete("Use ActionKeyword, this property will be removed in v1.4.0")]
-        public string ActionName { get; internal set; }
-
-        [Obsolete("Use Search instead, this property will be removed in v1.4.0")]
-        public List<string> ActionParameters { get; internal set; }
-
-        [Obsolete("Use Search instead, this method will be removed in v1.4.0")]
-        public string GetAllRemainingParameter() => Search;
+        #endregion
     }
 }

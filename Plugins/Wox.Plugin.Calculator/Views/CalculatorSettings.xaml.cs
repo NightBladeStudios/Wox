@@ -1,28 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using Wox.Plugin.Caculator.ViewModels;
-
-namespace Wox.Plugin.Caculator.Views
+﻿namespace Wox.Plugin.Calculator.Views
 {
+    using System.Windows;
+    using System.Windows.Controls;
+    using ViewModels;
+
     /// <summary>
     /// Interaction logic for CalculatorSettings.xaml
     /// </summary>
     public partial class CalculatorSettings : UserControl
     {
-        private readonly SettingsViewModel _viewModel;
         private readonly Settings _settings;
+        private readonly SettingsViewModel _viewModel;
 
         public CalculatorSettings(SettingsViewModel viewModel)
         {
@@ -32,12 +20,14 @@ namespace Wox.Plugin.Caculator.Views
             InitializeComponent();
         }
 
+        #region Private
+
         private void CalculatorSettings_Loaded(object sender, RoutedEventArgs e)
         {
             DecimalSeparatorComboBox.SelectedItem = _settings.DecimalSeparator;
             MaxDecimalPlaces.SelectedItem = _settings.MaxDecimalPlaces;
         }
-    }
 
-    
+        #endregion
+    }
 }

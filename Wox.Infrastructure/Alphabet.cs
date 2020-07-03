@@ -1,26 +1,24 @@
-﻿using System;
-using System.Collections.Specialized;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.Caching;
-using NLog;
-using ToolGood.Words;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox.Infrastructure
+﻿namespace Wox.Infrastructure
 {
+    using System;
+    using System.Collections.Specialized;
+    using System.Runtime.Caching;
+    using NLog;
+    using ToolGood.Words;
+    using UserSettings;
+
     public class Alphabet
     {
-        private Settings _settings;
-        private MemoryCache _cache;
-        
         private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        private MemoryCache _cache;
+        private Settings _settings;
+
+        #region Public
 
         public void Initialize()
         {
             _settings = Settings.Instance;
-            NameValueCollection config = new NameValueCollection();
+            var config = new NameValueCollection();
             config.Add("pollingInterval", "00:05:00");
             config.Add("physicalMemoryLimitPercentage", "1");
             config.Add("cacheMemoryLimitMegabytes", "30");
@@ -31,27 +29,24 @@ namespace Wox.Infrastructure
         {
             if (_settings.ShouldUsePinyin)
             {
-                string result = _cache[content] as string;
+                var result = _cache[content] as string;
                 if (result == null)
                 {
                     if (WordsHelper.HasChinese(content))
-                    {
                         result = WordsHelper.GetFirstPinyin(content);
-                    }
                     else
-                    {
                         result = content;
-                    }
-                    CacheItemPolicy policy = new CacheItemPolicy();
+                    var policy = new CacheItemPolicy();
                     policy.SlidingExpiration = new TimeSpan(12, 0, 0);
                     _cache.Set(content, result, policy);
                 }
+
                 return result;
             }
-            else
-            {
-                return content;
-            }
+
+            return content;
         }
+
+        #endregion
     }
 }

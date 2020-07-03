@@ -1,13 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Windows;
-using System.Windows.Forms;
-
-namespace Wox.Plugin.Program
+﻿namespace Wox.Plugin.Program
 {
+    using System.Windows;
+
     public partial class AddIgnored
     {
-        private IgnoredEntry _editing;
-        private Settings _settings;
+        private readonly IgnoredEntry _editing;
+        private readonly Settings _settings;
 
         public AddIgnored(Settings settings)
         {
@@ -26,11 +24,13 @@ namespace Wox.Plugin.Program
             RegexCheckbox.IsChecked = _editing.IsRegex;
         }
 
+        #region Private
+
         private void ButtonAdd_OnClick(object sender, RoutedEventArgs e)
         {
-            if(_editing == null)
+            if (_editing == null)
             {
-                _settings.IgnoredSequence.Add(new IgnoredEntry()
+                _settings.IgnoredSequence.Add(new IgnoredEntry
                 {
                     EntryString = IgnoredStringTextbox.Text,
                     IsRegex = RegexCheckbox.IsChecked.Value
@@ -39,12 +39,16 @@ namespace Wox.Plugin.Program
             else
             {
                 _settings.IgnoredSequence.Remove(_editing);
-                _settings.IgnoredSequence.Add(new IgnoredEntry() {
+                _settings.IgnoredSequence.Add(new IgnoredEntry
+                {
                     EntryString = IgnoredStringTextbox.Text,
                     IsRegex = RegexCheckbox.IsChecked.Value
                 });
             }
+
             Close();
         }
+
+        #endregion
     }
 }

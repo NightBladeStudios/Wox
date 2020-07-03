@@ -1,9 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-namespace Wox.Plugin.Program
+﻿namespace Wox.Plugin.Program
 {
+    using System;
+    using System.Collections.Generic;
+
     public class Settings
     {
         public DateTime LastIndexTime { get; set; }
@@ -15,9 +14,6 @@ namespace Wox.Plugin.Program
 
         public bool EnableRegistrySource { get; set; } = false;
 
-        internal const char SuffixSeperator = ';';
-
-        
-
+        internal const char SuffixSeparator = ';';
     }
 }

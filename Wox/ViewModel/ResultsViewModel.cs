@@ -1,52 +1,66 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Threading;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox.ViewModel
+﻿namespace Wox.ViewModel
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.ObjectModel;
+    using System.Collections.Specialized;
+    using System.Linq;
+    using System.Threading;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Data;
+    using System.Windows.Documents;
+    using Infrastructure.Logger;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using Plugin;
+
     public class ResultsViewModel : BaseModel
     {
-        #region Private Fields
-
-        public ResultCollection Results { get; }
-
-        private readonly Settings _settings;
-        private int MaxResults => _settings?.MaxResultsToShow ?? 6;
-        private readonly object _collectionLock = new object();
-        public ResultsViewModel()
+        public class ResultCollection : Collection<ResultViewModel>, INotifyCollectionChanged
         {
-            Results = new ResultCollection();
-            BindingOperations.EnableCollectionSynchronization(Results, _collectionLock);
-        }
-        public ResultsViewModel(Settings settings) : this()
-        {
-            _settings = settings;
-            _settings.PropertyChanged += (s, e) =>
+            public event NotifyCollectionChangedEventHandler CollectionChanged;
+
+            #region MonoBehaviour
+
+            public void Update(List<ResultViewModel> newItems, CancellationToken token)
             {
-                if (e.PropertyName == nameof(_settings.MaxResultsToShow))
+                if (token.IsCancellationRequested) return;
+
+                Clear();
+                foreach (var i in newItems)
                 {
-                    OnPropertyChanged(nameof(MaxHeight));
+                    if (token.IsCancellationRequested) break;
+                    Add(i);
                 }
-            };
+
+                if (CollectionChanged != null)
+                    // wpf use directx / double buffered already, so just reset all won't cause ui flickering
+                    CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            }
+
+            #endregion
+
+            #region Public
+
+            public void RemoveAll()
+            {
+                Clear();
+                if (CollectionChanged != null) CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
+            }
+
+            #endregion
         }
 
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-        #endregion
+        public static readonly DependencyProperty FormattedTextProperty = DependencyProperty.RegisterAttached(
+            "FormattedText",
+            typeof(Inline),
+            typeof(ResultsViewModel),
+            new PropertyMetadata(null, FormattedTextPropertyChanged));
 
-        #region Properties
+        public ResultCollection Results { get; }
 
         public int MaxHeight => MaxResults * 50;
 
@@ -54,31 +68,32 @@ namespace Wox.ViewModel
 
         public ResultViewModel SelectedItem { get; set; }
         public Thickness Margin { get; set; }
-        public Visibility Visbility { get; set; } = Visibility.Collapsed;
+        public Visibility Visibility { get; set; } = Visibility.Collapsed;
 
-        #endregion
+        public int Count => Results.Count;
 
-        #region Private Methods
 
-        private int NewIndex(int i)
+        private int MaxResults => _settings?.MaxResultsToShow ?? 6;
+        private readonly object _collectionLock = new object();
+
+        private readonly Settings _settings;
+
+        public ResultsViewModel()
         {
-            var n = Results.Count;
-            if (n > 0)
-            {
-                i = (n + i) % n;
-                return i;
-            }
-            else
-            {
-                // SelectedIndex returns -1 if selection is empty.
-                return -1;
-            }
+            Results = new ResultCollection();
+            BindingOperations.EnableCollectionSynchronization(Results, _collectionLock);
         }
 
+        public ResultsViewModel(Settings settings) : this()
+        {
+            _settings = settings;
+            _settings.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(_settings.MaxResultsToShow)) OnPropertyChanged(nameof(MaxHeight));
+            };
+        }
 
-        #endregion
-
-        #region Public Methods
+        #region Public
 
         public void SelectNextResult()
         {
@@ -110,12 +125,10 @@ namespace Wox.ViewModel
             Results.RemoveAll();
         }
 
-        public int Count => Results.Count;
-
         public void AddResults(List<Result> newRawResults, string resultId)
         {
-            CancellationToken token = new CancellationTokenSource().Token;
-            List<ResultsForUpdate> updates = new List<ResultsForUpdate>()
+            var token = new CancellationTokenSource().Token;
+            var updates = new List<ResultsForUpdate>
             {
                 new ResultsForUpdate(newRawResults, resultId, token)
             };
@@ -143,57 +156,21 @@ namespace Wox.ViewModel
             // https://stackoverflow.com/questions/14336750
             lock (_collectionLock)
             {
-                List<ResultViewModel> newResults = NewResults(updates, token);
+                var newResults = NewResults(updates, token);
                 Logger.WoxTrace($"newResults {newResults.Count}");
                 Results.Update(newResults, token);
             }
 
             if (Results.Count > 0)
             {
-                Margin = new Thickness { Top = 8 };
+                Margin = new Thickness {Top = 8};
                 SelectedIndex = 0;
             }
             else
             {
-                Margin = new Thickness { Top = 0 };
+                Margin = new Thickness {Top = 0};
             }
         }
-
-        private List<ResultViewModel> NewResults(List<ResultsForUpdate> updates, CancellationToken token)
-        {
-            if (token.IsCancellationRequested) { return Results.ToList(); }
-            var newResults = Results.ToList();
-            if (updates.Count > 0)
-            {
-                if (token.IsCancellationRequested) { return Results.ToList(); }
-                List<Result> resultsFromUpdates = updates.SelectMany(u => u.Results).ToList();
-
-                if (token.IsCancellationRequested) { return Results.ToList(); }
-                newResults.RemoveAll(r => updates.Any(u => u.ID == r.Result.PluginID));
-
-                if (token.IsCancellationRequested) { return Results.ToList(); }
-                IEnumerable<ResultViewModel> vm = resultsFromUpdates.Select(r => new ResultViewModel(r));
-                newResults.AddRange(vm);
-
-                if (token.IsCancellationRequested) { return Results.ToList(); }
-                List<ResultViewModel> sorted = newResults.OrderByDescending(r => r.Result.Score).Take(MaxResults * 4).ToList();
-
-                return sorted;
-            }
-            else
-            {
-                return Results.ToList();
-            }
-        }
-
-        #endregion
-
-        #region FormattedText Dependency Property
-        public static readonly DependencyProperty FormattedTextProperty = DependencyProperty.RegisterAttached(
-            "FormattedText",
-            typeof(Inline),
-            typeof(ResultsViewModel),
-            new PropertyMetadata(null, FormattedTextPropertyChanged));
 
         public static void SetFormattedText(DependencyObject textBlock, IList<int> value)
         {
@@ -202,7 +179,49 @@ namespace Wox.ViewModel
 
         public static Inline GetFormattedText(DependencyObject textBlock)
         {
-            return (Inline)textBlock.GetValue(FormattedTextProperty);
+            return (Inline) textBlock.GetValue(FormattedTextProperty);
+        }
+
+        #endregion
+
+        #region Private
+
+        private int NewIndex(int i)
+        {
+            var n = Results.Count;
+            if (n > 0)
+            {
+                i = (n + i) % n;
+                return i;
+            }
+
+            // SelectedIndex returns -1 if selection is empty.
+            return -1;
+        }
+
+        private List<ResultViewModel> NewResults(List<ResultsForUpdate> updates, CancellationToken token)
+        {
+            if (token.IsCancellationRequested) return Results.ToList();
+            var newResults = Results.ToList();
+            if (updates.Count > 0)
+            {
+                if (token.IsCancellationRequested) return Results.ToList();
+                var resultsFromUpdates = updates.SelectMany(u => u.Results).ToList();
+
+                if (token.IsCancellationRequested) return Results.ToList();
+                newResults.RemoveAll(r => updates.Any(u => u.ID == r.Result.PluginID));
+
+                if (token.IsCancellationRequested) return Results.ToList();
+                var vm = resultsFromUpdates.Select(r => new ResultViewModel(r));
+                newResults.AddRange(vm);
+
+                if (token.IsCancellationRequested) return Results.ToList();
+                var sorted = newResults.OrderByDescending(r => r.Result.Score).Take(MaxResults * 4).ToList();
+
+                return sorted;
+            }
+
+            return Results.ToList();
         }
 
         private static void FormattedTextPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
@@ -210,44 +229,14 @@ namespace Wox.ViewModel
             var textBlock = d as TextBlock;
             if (textBlock == null) return;
 
-            var inline = (Inline)e.NewValue;
+            var inline = (Inline) e.NewValue;
 
             textBlock.Inlines.Clear();
             if (inline == null) return;
 
             textBlock.Inlines.Add(inline);
         }
+
         #endregion
-
-        public class ResultCollection : Collection<ResultViewModel>, INotifyCollectionChanged
-        {
-            public event NotifyCollectionChangedEventHandler CollectionChanged;
-
-            public void RemoveAll()
-            {
-                this.Clear();
-                if (CollectionChanged != null)
-                {
-                    CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-                }
-            }
-
-            public void Update(List<ResultViewModel> newItems, CancellationToken token)
-            {
-                if (token.IsCancellationRequested) { return; }
-
-                this.Clear();
-                foreach (var i in newItems)
-                {
-                    if (token.IsCancellationRequested) { break; }
-                    this.Add(i);
-                }
-                if (CollectionChanged != null)
-                {
-                    // wpf use directx / double buffered already, so just reset all won't cause ui flickering
-                    CollectionChanged.Invoke(this, new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
-                }
-            }
-        }
     }
 }

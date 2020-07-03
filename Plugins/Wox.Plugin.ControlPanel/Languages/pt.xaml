@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_controlpanel_plugin_name">Painel de controlo</system:String>
     <system:String x:Key="wox_plugin_controlpanel_plugin_description">Pesquisar no painel de controlo</system:String>
-    
+
 </ResourceDictionary>

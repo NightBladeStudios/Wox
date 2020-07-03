@@ -1,15 +1,14 @@
-﻿using System;
-using System.Diagnostics;
-using System.IO;
-using Wox.Infrastructure;
-using Wox.Plugin;
-
-namespace Wox.Core.Plugin
+﻿namespace Wox.Core.Plugin
 {
+    using System.Diagnostics;
+    using System.IO;
+    using Infrastructure;
+    using Wox.Plugin;
+
     internal class PythonPlugin : JsonRPCPlugin
     {
-        private readonly ProcessStartInfo _startInfo;
         public override string SupportedLanguage { get; set; } = AllowedLanguage.Python;
+        private readonly ProcessStartInfo _startInfo;
 
         public PythonPlugin(string filename)
         {
@@ -19,21 +18,22 @@ namespace Wox.Core.Plugin
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                RedirectStandardError = true
             };
 
             // temp fix for issue #667
             var path = Path.Combine(Constant.ProgramDirectory, JsonRPC);
             _startInfo.EnvironmentVariables["PYTHONPATH"] = path;
-
         }
+
+        #region Protected
 
         protected override string ExecuteQuery(Query query)
         {
-            JsonRPCServerRequestModel request = new JsonRPCServerRequestModel
+            var request = new JsonRPCServerRequestModel
             {
                 Method = "query",
-                Parameters = new object[] { query.Search },
+                Parameters = new object[] {query.Search}
             };
             //Add -B flag to tell python don't write .py[co] files. Because .pyc contains location infos which will prevent python portable
             _startInfo.Arguments = $"-B \"{context.CurrentPluginMetadata.ExecuteFilePath}\" \"{request}\"";
@@ -50,15 +50,19 @@ namespace Wox.Core.Plugin
             return Execute(_startInfo);
         }
 
-        protected override string ExecuteContextMenu(Result selectedResult) {
-            JsonRPCServerRequestModel request = new JsonRPCServerRequestModel {
+        protected override string ExecuteContextMenu(Result selectedResult)
+        {
+            var request = new JsonRPCServerRequestModel
+            {
                 Method = "context_menu",
-                Parameters = new object[] { selectedResult.ContextData },
+                Parameters = new[] {selectedResult.ContextData}
             };
             _startInfo.Arguments = $"-B \"{context.CurrentPluginMetadata.ExecuteFilePath}\" \"{request}\"";
             _startInfo.WorkingDirectory = context.CurrentPluginMetadata.PluginDirectory;
 
             return Execute(_startInfo);
         }
+
+        #endregion
     }
 }

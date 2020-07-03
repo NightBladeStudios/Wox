@@ -1,32 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
-using System.Windows;
-
-namespace Wox.Plugin.Color
+﻿namespace Wox.Plugin.Color
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Drawing;
+    using System.Drawing.Imaging;
+    using System.IO;
+    using System.Linq;
+    using System.Windows;
+
     public sealed class ColorsPlugin : IPlugin, IPluginI18n
     {
-        private string DIR_PATH = Path.Combine(Path.GetTempPath(), @"Plugins\Colors\");
-        private PluginInitContext context;
         private const int IMG_SIZE = 32;
 
-        private DirectoryInfo ColorsDirectory { get; set; }
+        private DirectoryInfo ColorsDirectory { get; }
+        private PluginInitContext context;
+        private readonly string DIR_PATH = Path.Combine(Path.GetTempPath(), @"Plugins\Colors\");
 
         public ColorsPlugin()
         {
             if (!Directory.Exists(DIR_PATH))
-            {
                 ColorsDirectory = Directory.CreateDirectory(DIR_PATH);
-            }
             else
-            {
                 ColorsDirectory = new DirectoryInfo(DIR_PATH);
-            }
         }
+
+        #region Public
 
         public List<Result> Query(Query query)
         {
@@ -52,6 +50,7 @@ namespace Wox.Plugin.Color
                         }
                     };
                 }
+
                 return cached.Select(x => new Result
                 {
                     Title = raw,
@@ -70,17 +69,37 @@ namespace Wox.Plugin.Color
             }
         }
 
+        public FileInfo[] Find(string name)
+        {
+            var file = string.Format("{0}.png", name.Substring(1));
+            return ColorsDirectory.GetFiles(file, SearchOption.TopDirectoryOnly);
+        }
+
+        public void Init(PluginInitContext context)
+        {
+            this.context = context;
+        }
+
+
+        public string GetTranslatedPluginTitle()
+        {
+            return context.API.GetTranslation("wox_plugin_color_plugin_name");
+        }
+
+        public string GetTranslatedPluginDescription()
+        {
+            return context.API.GetTranslation("wox_plugin_color_plugin_description");
+        }
+
+        #endregion
+
+        #region Private
+
         private bool IsAvailable(string query)
         {
             // todo: rgb, names
             var length = query.Length - 1; // minus `#` sign
             return query.StartsWith("#") && (length == 3 || length == 6);
-        }
-
-        public FileInfo[] Find(string name)
-        {
-            var file = string.Format("{0}.png", name.Substring(1));
-            return ColorsDirectory.GetFiles(file, SearchOption.TopDirectoryOnly);
         }
 
         private string CreateImage(string name)
@@ -102,20 +121,6 @@ namespace Wox.Plugin.Color
             return string.Format("{0}{1}.png", ColorsDirectory.FullName, name.Substring(1));
         }
 
-        public void Init(PluginInitContext context)
-        {
-            this.context = context;
-        }
-
-
-        public string GetTranslatedPluginTitle()
-        {
-            return context.API.GetTranslation("wox_plugin_color_plugin_name");
-        }
-
-        public string GetTranslatedPluginDescription()
-        {
-            return context.API.GetTranslation("wox_plugin_color_plugin_description");
-        }
+        #endregion
     }
 }

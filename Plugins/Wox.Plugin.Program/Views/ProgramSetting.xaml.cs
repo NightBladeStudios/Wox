@@ -1,25 +1,25 @@
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using Wox.Plugin.Program.Programs;
-using System.ComponentModel;
-using System.Windows.Data;
-
 namespace Wox.Plugin.Program.Views
 {
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Data;
+    using System.Windows.Input;
+    using Programs;
+
     /// <summary>
     /// Interaction logic for ProgramSetting.xaml
     /// </summary>
     public partial class ProgramSetting : UserControl
     {
-        private PluginInitContext context;
-        private Settings _settings;
-        private GridViewColumnHeader _lastHeaderClicked;
         private ListSortDirection _lastDirection;
+        private GridViewColumnHeader _lastHeaderClicked;
+        private readonly Settings _settings;
+        private readonly PluginInitContext context;
 
         public ProgramSetting(PluginInitContext context, Settings settings, Win32[] win32s, UWP.Application[] uwps)
         {
@@ -29,98 +29,85 @@ namespace Wox.Plugin.Program.Views
             _settings = settings;
         }
 
+        #region Private
+
         private void Setting_Loaded(object sender, RoutedEventArgs e)
         {
-            programSourceView.ItemsSource = _settings.ProgramSources;
-            programIgnoreView.ItemsSource = _settings.IgnoredSequence;
+            ProgramSourceView.ItemsSource = _settings.ProgramSources;
+            ProgramIgnoreView.ItemsSource = _settings.IgnoredSequence;
             StartMenuEnabled.IsChecked = _settings.EnableStartMenuSource;
             RegistryEnabled.IsChecked = _settings.EnableRegistrySource;
         }
 
         private void ReIndexing()
         {
-            programSourceView.Items.Refresh();
+            ProgramSourceView.Items.Refresh();
             Task.Run(() =>
             {
-                Dispatcher.Invoke(() => { indexingPanel.Visibility = Visibility.Visible; });
+                Dispatcher.Invoke(() => { IndexingPanel.Visibility = Visibility.Visible; });
                 Main.IndexPrograms();
-                Dispatcher.Invoke(() => { indexingPanel.Visibility = Visibility.Hidden; });
+                Dispatcher.Invoke(() => { IndexingPanel.Visibility = Visibility.Hidden; });
             });
         }
 
-        private void btnAddProgramSource_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonAddProgramSource_OnClick(object sender, RoutedEventArgs e)
         {
             var add = new AddProgramSource(context, _settings);
-            if (add.ShowDialog() ?? false)
-            {
-                ReIndexing();
-            }
+            if (add.ShowDialog() ?? false) ReIndexing();
         }
 
-        private void btnEditProgramSource_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonEditProgramSource_OnClick(object sender, RoutedEventArgs e)
         {
-            var selectedProgramSource = programSourceView.SelectedItem as ProgramSource;
+            var selectedProgramSource = ProgramSourceView.SelectedItem as ProgramSource;
             if (selectedProgramSource != null)
             {
                 var add = new AddProgramSource(selectedProgramSource, _settings);
-                if (add.ShowDialog() ?? false)
-                {
-                    ReIndexing();
-                }
+                if (add.ShowDialog() ?? false) ReIndexing();
             }
             else
             {
-                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
+                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
                 MessageBox.Show(msg);
             }
         }
 
-        private void btnReindex_Click(object sender, RoutedEventArgs e)
+        private void ButtonReindex_Click(object sender, RoutedEventArgs e)
         {
             ReIndexing();
         }
 
-        private void BtnProgramSuffixes_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonProgramSuffixes_OnClick(object sender, RoutedEventArgs e)
         {
             var p = new ProgramSuffixes(context, _settings);
-            if (p.ShowDialog() ?? false)
-            {
-                ReIndexing();
-            }
+            if (p.ShowDialog() ?? false) ReIndexing();
         }
 
-        private void programSourceView_DragEnter(object sender, DragEventArgs e)
+        private void ProgramSourceView_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
                 e.Effects = DragDropEffects.Link;
-            }
             else
-            {
                 e.Effects = DragDropEffects.None;
-            }
         }
 
-        private void programSourceView_Drop(object sender, DragEventArgs e)
+        private void ProgramSourceView_Drop(object sender, DragEventArgs e)
         {
-            var directories = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var directories = (string[]) e.Data.GetData(DataFormats.FileDrop);
 
             var directoriesToAdd = new List<ProgramSource>();
 
             if (directories != null && directories.Length > 0)
             {
-                foreach (string directory in directories)
-                {
+                foreach (var directory in directories)
                     if (Directory.Exists(directory))
                     {
                         var source = new ProgramSource
                         {
-                            Location = directory,
+                            Location = directory
                         };
 
                         directoriesToAdd.Add(source);
                     }
-                }
 
                 if (directoriesToAdd.Count() > 0)
                 {
@@ -142,29 +129,28 @@ namespace Wox.Plugin.Program.Views
             ReIndexing();
         }
 
-        private void btnProgramSoureDelete_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonProgramSourceDelete_OnClick(object sender, RoutedEventArgs e)
         {
-            var selectedItems = programSourceView
-                                .SelectedItems.Cast<ProgramSource>()
-                                .ToList();
+            var selectedItems = ProgramSourceView
+                .SelectedItems.Cast<ProgramSource>()
+                .ToList();
 
             if (selectedItems.Count() == 0)
             {
-                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
+                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_program_source");
                 MessageBox.Show(msg);
-                return;
             }
             else
             {
                 _settings.ProgramSources.RemoveAll(s => selectedItems.Contains(s));
-                programSourceView.SelectedItems.Clear();
+                ProgramSourceView.SelectedItems.Clear();
                 ReIndexing();
             }
         }
 
         private void ProgramSourceView_PreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
-            programSourceView.SelectedItems.Clear();
+            ProgramSourceView.SelectedItems.Clear();
         }
 
         private void GridViewColumnHeaderClickedHandler(object sender, RoutedEventArgs e)
@@ -173,7 +159,6 @@ namespace Wox.Plugin.Program.Views
             ListSortDirection direction;
 
             if (headerClicked != null)
-            {
                 if (headerClicked.Role != GridViewColumnHeaderRole.Padding)
                 {
                     if (headerClicked != _lastHeaderClicked)
@@ -183,13 +168,9 @@ namespace Wox.Plugin.Program.Views
                     else
                     {
                         if (_lastDirection == ListSortDirection.Ascending)
-                        {
                             direction = ListSortDirection.Descending;
-                        }
                         else
-                        {
                             direction = ListSortDirection.Ascending;
-                        }
                     }
 
                     var columnBinding = headerClicked.Column.DisplayMemberBinding as Binding;
@@ -200,57 +181,59 @@ namespace Wox.Plugin.Program.Views
                     _lastHeaderClicked = headerClicked;
                     _lastDirection = direction;
                 }
-            }
         }
 
         private void Sort(string sortBy, ListSortDirection direction)
         {
-            var dataView = CollectionViewSource.GetDefaultView(programSourceView.ItemsSource);
+            var dataView = CollectionViewSource.GetDefaultView(ProgramSourceView.ItemsSource);
 
             dataView.SortDescriptions.Clear();
-            SortDescription sd = new SortDescription(sortBy, direction);
+            var sd = new SortDescription(sortBy, direction);
             dataView.SortDescriptions.Add(sd);
             dataView.Refresh();
         }
 
-        private void btnDeleteIgnored_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonDeleteIgnored_OnClick(object sender, RoutedEventArgs e)
         {
-            IgnoredEntry selectedIgnoredEntry = programIgnoreView.SelectedItem as IgnoredEntry;
+            var selectedIgnoredEntry = ProgramIgnoreView.SelectedItem as IgnoredEntry;
             if (selectedIgnoredEntry != null)
             {
-                string msg = string.Format(context.API.GetTranslation("wox_plugin_program_delete_ignored"), selectedIgnoredEntry);
+                var msg = string.Format(context.API.GetTranslation("wox_plugin_program_delete_ignored"), selectedIgnoredEntry);
 
                 if (MessageBox.Show(msg, string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
                     _settings.IgnoredSequence.Remove(selectedIgnoredEntry);
-                    programIgnoreView.Items.Refresh();
+                    ProgramIgnoreView.Items.Refresh();
                 }
             }
             else
             {
-                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_ignored");
+                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_ignored");
                 MessageBox.Show(msg);
             }
         }
 
-        private void btnEditIgnored_OnClick(object sender, RoutedEventArgs e)
+        private void ButtonEditIgnored_OnClick(object sender, RoutedEventArgs e)
         {
-            IgnoredEntry selectedIgnoredEntry = programIgnoreView.SelectedItem as IgnoredEntry;
+            var selectedIgnoredEntry = ProgramIgnoreView.SelectedItem as IgnoredEntry;
             if (selectedIgnoredEntry != null)
             {
                 new AddIgnored(selectedIgnoredEntry, _settings).ShowDialog();
-                programIgnoreView.Items.Refresh();
+                ProgramIgnoreView.Items.Refresh();
             }
             else
             {
-                string msg = context.API.GetTranslation("wox_plugin_program_pls_select_ignored");
+                var msg = context.API.GetTranslation("wox_plugin_program_pls_select_ignored");
                 MessageBox.Show(msg);
             }
         }
-        private void btnAddIgnored_OnClick(object sender, RoutedEventArgs e)
+
+        private void ButtonAddIgnored_OnClick(object sender, RoutedEventArgs e)
         {
             new AddIgnored(_settings).ShowDialog();
-            programIgnoreView.Items.Refresh();
+            ProgramIgnoreView.Items.Refresh();
         }
+
+        #endregion
     }
 }

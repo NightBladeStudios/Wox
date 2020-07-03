@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using NUnit.Framework;
-using Wox.Infrastructure;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox.Test
+﻿namespace Wox.Test
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using Infrastructure;
+    using Infrastructure.UserSettings;
+    using NUnit.Framework;
+    using Plugin;
+
     [TestFixture]
     public class FuzzyMatcherTest
     {
@@ -27,7 +27,8 @@ namespace Wox.Test
         }
 
         public List<string> GetSearchStrings()
-            => new List<string>
+        {
+            return new List<string>
             {
                 Chrome,
                 "Choose which programs you want Windows to use for activities like web browsing, editing photos, sending e-mail, and playing music.",
@@ -38,6 +39,7 @@ namespace Wox.Test
                 LastIsChrome,
                 OneOneOneOne
             };
+        }
 
         public List<int> GetPrecisionScores()
         {
@@ -46,40 +48,9 @@ namespace Wox.Test
             Enum.GetValues(typeof(StringMatcher.SearchPrecisionScore))
                 .Cast<StringMatcher.SearchPrecisionScore>()
                 .ToList()
-                .ForEach(x => listToReturn.Add((int)x));
+                .ForEach(x => listToReturn.Add((int) x));
 
             return listToReturn;
-        }
-
-        [Test]
-        public void MatchTest()
-        {
-            var sources = new List<string>
-            {
-                "file open in browser-test",
-                "Install Package",
-                "add new bsd",
-                "Inste",
-                "aac"
-            };
-
-            var results = new List<Result>();
-            var matcher = new StringMatcher();
-            foreach (var str in sources)
-            {
-                results.Add(new Result
-                {
-                    Title = str,
-                    Score = matcher.FuzzyMatch("inst", str).RawScore
-                });
-            }
-
-            results = results.Where(x => x.Score > 0).OrderByDescending(x => x.Score).ToList();
-
-            Assert.IsTrue(results.Count == 3);
-            Assert.IsTrue(results[0].Title == "Inste");
-            Assert.IsTrue(results[1].Title == "Install Package");
-            Assert.IsTrue(results[2].Title == "file open in browser-test");
         }
 
         [TestCase("Chrome")]
@@ -103,13 +74,11 @@ namespace Wox.Test
             var results = new List<Result>();
             var matcher = new StringMatcher();
             foreach (var str in GetSearchStrings())
-            {
                 results.Add(new Result
                 {
                     Title = str,
                     Score = matcher.FuzzyMatch(searchTerm, str).Score
                 });
-            }
 
             foreach (var precisionScore in GetPrecisionScores())
             {
@@ -118,10 +87,7 @@ namespace Wox.Test
                 Debug.WriteLine("");
                 Debug.WriteLine("###############################################");
                 Debug.WriteLine("SEARCHTERM: " + searchTerm + ", GreaterThanSearchPrecisionScore: " + precisionScore);
-                foreach (var item in filteredResult)
-                {
-                    Debug.WriteLine("SCORE: " + item.Score.ToString() + ", FoundString: " + item.Title);
-                }
+                foreach (var item in filteredResult) Debug.WriteLine("SCORE: " + item.Score + ", FoundString: " + item.Title);
                 Debug.WriteLine("###############################################");
                 Debug.WriteLine("");
 
@@ -143,7 +109,7 @@ namespace Wox.Test
         [TestCase("goo", "Google Chrome", StringMatcher.SearchPrecisionScore.Regular, true)]
         [TestCase("chr", "Google Chrome", StringMatcher.SearchPrecisionScore.Low, true)]
         [TestCase("chr", "Chrome", StringMatcher.SearchPrecisionScore.Regular, true)]
-        [TestCase("chr", "Help cure hope raise on mind entity Chrome", StringMatcher.SearchPrecisionScore.Low, true)] 
+        [TestCase("chr", "Help cure hope raise on mind entity Chrome", StringMatcher.SearchPrecisionScore.Low, true)]
         [TestCase("chr", "Candy Crush Saga from King", StringMatcher.SearchPrecisionScore.None, true)]
         [TestCase("ccs", "Candy Crush Saga from King", StringMatcher.SearchPrecisionScore.Low, true)]
         [TestCase("cand", "Candy Crush Saga from King", StringMatcher.SearchPrecisionScore.Regular, true)]
@@ -154,7 +120,7 @@ namespace Wox.Test
             bool expectedPrecisionResult)
         {
             // When            
-            var matcher = new StringMatcher { UserSettingSearchPrecision = expectedPrecisionScore };
+            var matcher = new StringMatcher {UserSettingSearchPrecision = expectedPrecisionScore};
 
             // Given
             var matchResult = matcher.FuzzyMatch(queryString, compareString);
@@ -162,7 +128,7 @@ namespace Wox.Test
             Debug.WriteLine("");
             Debug.WriteLine("###############################################");
             Debug.WriteLine($"QueryString: {queryString}     CompareString: {compareString}");
-            Debug.WriteLine($"RAW SCORE: {matchResult.RawScore.ToString()}, PrecisionLevelSetAt: {expectedPrecisionScore} ({(int)expectedPrecisionScore})");
+            Debug.WriteLine($"RAW SCORE: {matchResult.RawScore.ToString()}, PrecisionLevelSetAt: {expectedPrecisionScore} ({(int) expectedPrecisionScore})");
             Debug.WriteLine("###############################################");
             Debug.WriteLine("");
 
@@ -171,7 +137,7 @@ namespace Wox.Test
                 $"Query:{queryString}{Environment.NewLine} " +
                 $"Compare:{compareString}{Environment.NewLine}" +
                 $"Raw Score: {matchResult.RawScore}{Environment.NewLine}" +
-                $"Precision Score: {(int)expectedPrecisionScore}");
+                $"Precision Score: {(int) expectedPrecisionScore}");
         }
 
         [TestCase("exce", "OverLeaf-Latex: An online LaTeX editor", StringMatcher.SearchPrecisionScore.Regular, false)]
@@ -198,7 +164,7 @@ namespace Wox.Test
             bool expectedPrecisionResult)
         {
             // When
-            var matcher = new StringMatcher { UserSettingSearchPrecision = expectedPrecisionScore };
+            var matcher = new StringMatcher {UserSettingSearchPrecision = expectedPrecisionScore};
 
             // Given
             var matchResult = matcher.FuzzyMatch(queryString, compareString);
@@ -206,7 +172,7 @@ namespace Wox.Test
             Debug.WriteLine("");
             Debug.WriteLine("###############################################");
             Debug.WriteLine($"QueryString: {queryString}     CompareString: {compareString}");
-            Debug.WriteLine($"RAW SCORE: {matchResult.RawScore.ToString()}, PrecisionLevelSetAt: {expectedPrecisionScore} ({(int)expectedPrecisionScore})");
+            Debug.WriteLine($"RAW SCORE: {matchResult.RawScore.ToString()}, PrecisionLevelSetAt: {expectedPrecisionScore} ({(int) expectedPrecisionScore})");
             Debug.WriteLine("###############################################");
             Debug.WriteLine("");
 
@@ -215,7 +181,7 @@ namespace Wox.Test
                 $"Query:{queryString}{Environment.NewLine} " +
                 $"Compare:{compareString}{Environment.NewLine}" +
                 $"Raw Score: {matchResult.RawScore}{Environment.NewLine}" +
-                $"Precision Score: {(int)expectedPrecisionScore}");
+                $"Precision Score: {(int) expectedPrecisionScore}");
         }
 
         [TestCase("yd", "有道词典")]
@@ -225,16 +191,16 @@ namespace Wox.Test
         public void WhenGivenChinese(string queryString, string stringToCompare)
         {
             Settings.Instance.ShouldUsePinyin = true;
-            var matcher = new StringMatcher { UserSettingSearchPrecision = StringMatcher.SearchPrecisionScore.Regular };
+            var matcher = new StringMatcher {UserSettingSearchPrecision = StringMatcher.SearchPrecisionScore.Regular};
 
             var matchResult = matcher.FuzzyMatch(queryString, stringToCompare);
 
             Debug.WriteLine("");
             Debug.WriteLine("###############################################");
-            string output = $"QueryString: {queryString}{Environment.NewLine}" +
-            $"CompareString: {stringToCompare}{Environment.NewLine}" +
-            $"Score: {matchResult.RawScore} {matchResult.Score}{Environment.NewLine}" +
-            $"MatchData: {matchResult.MatchData}{Environment.NewLine}";
+            var output = $"QueryString: {queryString}{Environment.NewLine}" +
+                         $"CompareString: {stringToCompare}{Environment.NewLine}" +
+                         $"Score: {matchResult.RawScore} {matchResult.Score}{Environment.NewLine}" +
+                         $"MatchData: {matchResult.MatchData}{Environment.NewLine}";
             Debug.WriteLine(output);
             Debug.WriteLine("###############################################");
             Debug.WriteLine("");
@@ -243,5 +209,33 @@ namespace Wox.Test
             Assert.AreEqual(true, matchResult.IsSearchPrecisionScoreMet(), output);
         }
 
+        [Test]
+        public void MatchTest()
+        {
+            var sources = new List<string>
+            {
+                "file open in browser-test",
+                "Install Package",
+                "add new bsd",
+                "Inste",
+                "aac"
+            };
+
+            var results = new List<Result>();
+            var matcher = new StringMatcher();
+            foreach (var str in sources)
+                results.Add(new Result
+                {
+                    Title = str,
+                    Score = matcher.FuzzyMatch("inst", str).RawScore
+                });
+
+            results = results.Where(x => x.Score > 0).OrderByDescending(x => x.Score).ToList();
+
+            Assert.IsTrue(results.Count == 3);
+            Assert.IsTrue(results[0].Title == "Inste");
+            Assert.IsTrue(results[1].Title == "Install Package");
+            Assert.IsTrue(results[2].Title == "file open in browser-test");
+        }
     }
 }

@@ -1,23 +1,20 @@
-﻿using System;
-using System.Globalization;
-using System.Windows.Data;
-using System.Windows.Markup;
-
-namespace Wox.Plugin.Program
+﻿namespace Wox.Plugin.Program
 {
+    using System;
+    using System.Globalization;
+    using System.Windows.Data;
+    using System.Windows.Markup;
+
     public class LocationConverter : MarkupExtension, IValueConverter
     {
+        #region Public
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             var text = value as string;
             if (string.IsNullOrEmpty(text))
-            {
                 return string.Empty;
-            }
-            else
-            {
-                return text;
-            }
+            return text;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -29,5 +26,7 @@ namespace Wox.Plugin.Program
         {
             return this;
         }
+
+        #endregion
     }
 }

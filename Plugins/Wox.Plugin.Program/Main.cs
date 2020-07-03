@@ -1,21 +1,21 @@
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Text.RegularExpressions;
-using System.Windows.Controls;
-using NLog;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.Storage;
-using Wox.Plugin.Program.Programs;
-using Wox.Plugin.Program.Views;
-using System.Threading;
-
 namespace Wox.Plugin.Program
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using System.Text.RegularExpressions;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Windows.Controls;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Infrastructure.Storage;
+    using NLog;
+    using Programs;
+    using Views;
+
     public class Main : ISettingProvider, IPlugin, IPluginI18n, IContextMenu, ISavable, IReloadable
     {
         internal static Win32[] _win32s { get; set; }
@@ -23,26 +23,15 @@ namespace Wox.Plugin.Program
         internal static Settings _settings { get; set; }
 
         private static PluginInitContext _context;
-        private CancellationTokenSource _updateSource;
 
         private static BinaryStorage<Win32[]> _win32Storage;
         private static BinaryStorage<UWP.Application[]> _uwpStorage;
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private PluginJsonStorage<Settings> _settingsStorage;
+        private CancellationTokenSource _updateSource;
 
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
-
-        private static void preloadPrograms()
-        {
-            Logger.StopWatchNormal("Preload programs cost", () =>
-            {
-                _win32Storage = new BinaryStorage<Win32[]>("Win32");
-                _win32s = _win32Storage.TryLoad(new Win32[] { });
-                _uwpStorage = new BinaryStorage<UWP.Application[]>("UWP");
-                _uwps = _uwpStorage.TryLoad(new UWP.Application[] { });
-            });
-            Logger.WoxInfo($"Number of preload win32 programs <{_win32s.Length}>");
-            Logger.WoxInfo($"Number of preload uwps <{_uwps.Length}>");
-        }
+        #region Public
 
         public void Save()
         {
@@ -53,73 +42,57 @@ namespace Wox.Plugin.Program
 
         public List<Result> Query(Query query)
         {
-
             if (_updateSource != null && !_updateSource.IsCancellationRequested)
             {
                 _updateSource.Cancel();
                 Logger.WoxDebug($"cancel init {_updateSource.Token.GetHashCode()} {Thread.CurrentThread.ManagedThreadId} {query.RawQuery}");
                 _updateSource.Dispose();
             }
+
             var source = new CancellationTokenSource();
             _updateSource = source;
             var token = source.Token;
 
-            ConcurrentBag<Result> resultRaw = new ConcurrentBag<Result>();
+            var resultRaw = new ConcurrentBag<Result>();
 
-            if (token.IsCancellationRequested) { return new List<Result>(); }
+            if (token.IsCancellationRequested) return new List<Result>();
             Parallel.ForEach(_win32s, (program, state) =>
             {
-                if (token.IsCancellationRequested) { state.Break(); }
+                if (token.IsCancellationRequested) state.Break();
                 if (program.Enabled)
                 {
                     var r = program.Result(query.Search, _context.API);
-                    if (r != null && r.Score > 0)
-                    {
-                        resultRaw.Add(r);
-                    }
+                    if (r != null && r.Score > 0) resultRaw.Add(r);
                 }
             });
-            if (token.IsCancellationRequested) { return new List<Result>(); }
+            if (token.IsCancellationRequested) return new List<Result>();
             Parallel.ForEach(_uwps, (program, state) =>
             {
-                if (token.IsCancellationRequested) { state.Break(); }
+                if (token.IsCancellationRequested) state.Break();
                 if (program.Enabled)
                 {
                     var r = program.Result(query.Search, _context.API);
-                    if (token.IsCancellationRequested) { state.Break(); }
-                    if (r != null && r.Score > 0)
-                    {
-                        resultRaw.Add(r);
-                    }
+                    if (token.IsCancellationRequested) state.Break();
+                    if (r != null && r.Score > 0) resultRaw.Add(r);
                 }
             });
 
-            if (token.IsCancellationRequested) { return new List<Result>(); }
-            OrderedParallelQuery<Result> sorted = resultRaw.AsParallel().OrderByDescending(r => r.Score);
-            List<Result> results = new List<Result>();
-            foreach (Result r in sorted)
+            if (token.IsCancellationRequested) return new List<Result>();
+            var sorted = resultRaw.AsParallel().OrderByDescending(r => r.Score);
+            var results = new List<Result>();
+            foreach (var r in sorted)
             {
-                if (token.IsCancellationRequested) { return new List<Result>(); }
+                if (token.IsCancellationRequested) return new List<Result>();
                 var ignored = _settings.IgnoredSequence.Any(entry =>
                 {
                     if (entry.IsRegex)
-                    {
                         return Regex.Match(r.Title, entry.EntryString).Success || Regex.Match(r.SubTitle, entry.EntryString).Success;
-                    }
-                    else
-                    {
-                        return r.Title.ToLower().Contains(entry.EntryString) || r.SubTitle.ToLower().Contains(entry.EntryString);
-                    }
+                    return r.Title.ToLower().Contains(entry.EntryString) || r.SubTitle.ToLower().Contains(entry.EntryString);
                 });
-                if (!ignored)
-                {
-                    results.Add(r);
-                }
-                if (results.Count == 30)
-                {
-                    break;
-                }
+                if (!ignored) results.Add(r);
+                if (results.Count == 30) break;
             }
+
             return results;
         }
 
@@ -128,7 +101,7 @@ namespace Wox.Plugin.Program
             _context = context;
             loadSettings();
 
-            preloadPrograms();
+            PreLoadPrograms();
 
             Task.Delay(2000).ContinueWith(_ =>
             {
@@ -167,30 +140,17 @@ namespace Wox.Plugin.Program
 
         public static void IndexPrograms()
         {
-            var a = Task.Run(() =>
-            {
-                Logger.StopWatchNormal("Win32 index cost", IndexWin32Programs);
-            });
+            var a = Task.Run(() => { Logger.StopWatchNormal("Win32 index cost", IndexWin32Programs); });
 
-            var b = Task.Run(() =>
-            {
-                Logger.StopWatchNormal("UWP index cost", IndexUWPPrograms);
-            });
+            var b = Task.Run(() => { Logger.StopWatchNormal("UWP index cost", IndexUWPPrograms); });
 
             Task.WaitAll(a, b);
 
             Logger.WoxInfo($"Number of indexed win32 programs <{_win32s.Length}>");
-            foreach (var win32 in _win32s)
-            {
-                Logger.WoxDebug($" win32: <{win32.Name}> <{win32.ExecutableName}> <{win32.FullPath}>");
-            }
+            foreach (var win32 in _win32s) Logger.WoxDebug($" win32: <{win32.Name}> <{win32.ExecutableName}> <{win32.FullPath}>");
             Logger.WoxInfo($"Number of indexed uwps <{_uwps.Length}>");
-            foreach (var uwp in _uwps)
-            {
-                Logger.WoxDebug($" uwp: <{uwp.DisplayName}> <{uwp.UserModelId}>");
-            }
+            foreach (var uwp in _uwps) Logger.WoxDebug($" uwp: <{uwp.DisplayName}> <{uwp.UserModelId}>");
             _settings.LastIndexTime = DateTime.Today;
-            
         }
 
         public Control CreateSettingPanel()
@@ -212,10 +172,7 @@ namespace Wox.Plugin.Program
         {
             var menuOptions = new List<Result>();
             var program = selectedResult.ContextData as IProgram;
-            if (program != null)
-            {
-                menuOptions = program.ContextMenus(_context.API);
-            }
+            if (program != null) menuOptions = program.ContextMenus(_context.API);
             return menuOptions;
         }
 
@@ -238,5 +195,24 @@ namespace Wox.Plugin.Program
         {
             IndexPrograms();
         }
+
+        #endregion
+
+        #region Private
+
+        private static void PreLoadPrograms()
+        {
+            Logger.StopWatchNormal("Preload programs cost", () =>
+            {
+                _win32Storage = new BinaryStorage<Win32[]>("Win32");
+                _win32s = _win32Storage.TryLoad(new Win32[] { });
+                _uwpStorage = new BinaryStorage<UWP.Application[]>("UWP");
+                _uwps = _uwpStorage.TryLoad(new UWP.Application[] { });
+            });
+            Logger.WoxInfo($"Number of preload win32 programs <{_win32s.Length}>");
+            Logger.WoxInfo($"Number of preload uwps <{_uwps.Length}>");
+        }
+
+        #endregion
     }
 }

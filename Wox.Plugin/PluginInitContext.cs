@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
     public class PluginInitContext
     {

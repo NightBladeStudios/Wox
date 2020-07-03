@@ -1,53 +1,37 @@
-﻿using System;
-using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Threading;
-using NLog;
-using Sentry;
-using Sentry.Protocol;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Exception;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox.Helper
+﻿namespace Wox.Helper
 {
+    using System;
+    using System.Runtime.CompilerServices;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Threading;
+    using Infrastructure;
+    using Infrastructure.Exception;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using Sentry;
+    using Sentry.Protocol;
+
     public static class ErrorReporting
     {
-        private static void Report(Exception e, string id, [CallerMemberName] string method = "")
-        {
-            var logger = LogManager.GetLogger(method);
-            logger.Fatal(ExceptionFormatter.ExceptionWithRuntimeInfo(e, id));
-
-            var reportWindow = new ReportWindow(e, id);
-            reportWindow.Show();
-        }
+        #region Public
 
         public static void UnhandledExceptionHandleTask(Task t)
         {
-            string id = SendException(t.Exception);
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Report(t.Exception, id.ToString());
-            });
+            var id = SendException(t.Exception);
+            Application.Current.Dispatcher.Invoke(() => { Report(t.Exception, id); });
         }
 
         public static void UnhandledExceptionHandleMain(object sender, UnhandledExceptionEventArgs e)
         {
-            string id = SendException(e.ExceptionObject as Exception);
+            var id = SendException(e.ExceptionObject as Exception);
             //handle non-ui main thread exceptions
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                Report((Exception)e.ExceptionObject, id.ToString());
-            });
+            Application.Current.Dispatcher.Invoke(() => { Report((Exception) e.ExceptionObject, id); });
         }
 
         public static void DispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            string id = SendException(e.Exception);
+            var id = SendException(e.Exception);
             Report(e.Exception, id);
             //prevent application exist, so the user can copy prompted error info
             e.Handled = true;
@@ -101,5 +85,20 @@ namespace Wox.Helper
             return SentryId.Empty.ToString();
 #endif
         }
+
+        #endregion
+
+        #region Private
+
+        private static void Report(Exception e, string id, [CallerMemberName] string method = "")
+        {
+            var logger = LogManager.GetLogger(method);
+            logger.Fatal(ExceptionFormatter.ExceptionWithRuntimeInfo(e, id));
+
+            var reportWindow = new ReportWindow(e, id);
+            reportWindow.Show();
+        }
+
+        #endregion
     }
 }

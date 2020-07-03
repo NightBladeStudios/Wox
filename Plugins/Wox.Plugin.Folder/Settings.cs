@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
-using Newtonsoft.Json;
-using Wox.Infrastructure.Storage;
-
-namespace Wox.Plugin.Folder
+﻿namespace Wox.Plugin.Folder
 {
+    using System.Collections.Generic;
+    using Newtonsoft.Json;
+
     public class Settings
     {
         [JsonProperty]

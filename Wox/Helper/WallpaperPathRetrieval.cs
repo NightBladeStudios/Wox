@@ -1,19 +1,21 @@
-﻿using System;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Windows.Media;
-using Microsoft.Win32;
-
-namespace Wox.Helper
+﻿namespace Wox.Helper
 {
+    using System.Linq;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using System.Windows.Media;
+    using Microsoft.Win32;
+
     public static class WallpaperPathRetrieval
     {
+        private static readonly uint SPI_GETDESKWALLPAPER = 0x73;
+        private static readonly int MAX_PATH = 260;
+
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern Int32 SystemParametersInfo(UInt32 action,
-            Int32 uParam, StringBuilder vParam, UInt32 winIni);
-        private static readonly UInt32 SPI_GETDESKWALLPAPER = 0x73;
-        private static int MAX_PATH = 260;
+        private static extern int SystemParametersInfo(uint action,
+            int uParam, StringBuilder vParam, uint winIni);
+
+        #region Public
 
         public static string GetWallpaperPath()
         {
@@ -29,10 +31,9 @@ namespace Wox.Helper
 
         public static Color GetWallpaperColor()
         {
-            RegistryKey key = Registry.CurrentUser.OpenSubKey("Control Panel\\Colors", true);
+            var key = Registry.CurrentUser.OpenSubKey("Control Panel\\Colors", true);
             var result = key.GetValue(@"Background", null);
             if (result != null && result is string)
-            {
                 try
                 {
                     var parts = result.ToString().Trim().Split(new[] {' '}, 3).Select(byte.Parse).ToList();
@@ -41,8 +42,10 @@ namespace Wox.Helper
                 catch
                 {
                 }
-            }
+
             return Colors.Transparent;
         }
+
+        #endregion
     }
 }

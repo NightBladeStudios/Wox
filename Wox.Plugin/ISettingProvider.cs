@@ -1,9 +1,13 @@
-﻿using System.Windows.Controls;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
+    using System.Windows.Controls;
+
     public interface ISettingProvider
     {
+        #region Public
+
         Control CreateSettingPanel();
+
+        #endregion
     }
 }

@@ -1,20 +1,17 @@
-﻿using Ookii.Dialogs.Wpf; // may be removed later https://github.com/dotnet/wpf/issues/438
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Windows;
-using DataFormats = System.Windows.DataFormats;
-using DragDropEffects = System.Windows.DragDropEffects;
-using DragEventArgs = System.Windows.DragEventArgs;
-using MessageBox = System.Windows.MessageBox;
+﻿// may be removed later https://github.com/dotnet/wpf/issues/438
 
 namespace Wox.Plugin.Folder
 {
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Windows;
+    using Ookii.Dialogs.Wpf;
 
     public partial class FileSystemSettings
     {
-        private IPublicAPI woxAPI;
-        private Settings _settings;
+        private readonly Settings _settings;
+        private readonly IPublicAPI woxAPI;
 
         public FileSystemSettings(IPublicAPI woxAPI, Settings settings)
         {
@@ -24,12 +21,14 @@ namespace Wox.Plugin.Folder
             lbxFolders.ItemsSource = _settings.FolderLinks;
         }
 
+        #region Private
+
         private void btnDelete_Click(object sender, RoutedEventArgs e)
         {
             var selectedFolder = lbxFolders.SelectedItem as FolderLink;
             if (selectedFolder != null)
             {
-                string msg = string.Format(woxAPI.GetTranslation("wox_plugin_folder_delete_folder_link"), selectedFolder.Path);
+                var msg = string.Format(woxAPI.GetTranslation("wox_plugin_folder_delete_folder_link"), selectedFolder.Path);
 
                 if (MessageBox.Show(msg, string.Empty, MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 {
@@ -39,7 +38,7 @@ namespace Wox.Plugin.Folder
             }
             else
             {
-                string warning = woxAPI.GetTranslation("wox_plugin_folder_select_folder_link_warning");
+                var warning = woxAPI.GetTranslation("wox_plugin_folder_select_folder_link_warning");
                 MessageBox.Show(warning);
             }
         }
@@ -61,7 +60,7 @@ namespace Wox.Plugin.Folder
             }
             else
             {
-                string warning = woxAPI.GetTranslation("wox_plugin_folder_select_folder_link_warning");
+                var warning = woxAPI.GetTranslation("wox_plugin_folder_select_folder_link_warning");
                 MessageBox.Show(warning);
             }
         }
@@ -76,10 +75,7 @@ namespace Wox.Plugin.Folder
                     Path = folderBrowserDialog.SelectedPath
                 };
 
-                if (_settings.FolderLinks == null)
-                {
-                    _settings.FolderLinks = new List<FolderLink>();
-                }
+                if (_settings.FolderLinks == null) _settings.FolderLinks = new List<FolderLink>();
 
                 _settings.FolderLinks.Add(newFolder);
             }
@@ -89,16 +85,13 @@ namespace Wox.Plugin.Folder
 
         private void lbxFolders_Drop(object sender, DragEventArgs e)
         {
-            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            var files = (string[]) e.Data.GetData(DataFormats.FileDrop);
 
             if (files != null && files.Count() > 0)
             {
-                if (_settings.FolderLinks == null)
-                {
-                    _settings.FolderLinks = new List<FolderLink>();
-                }
+                if (_settings.FolderLinks == null) _settings.FolderLinks = new List<FolderLink>();
 
-                foreach (string s in files)
+                foreach (var s in files)
                 {
                     if (Directory.Exists(s))
                     {
@@ -118,13 +111,11 @@ namespace Wox.Plugin.Folder
         private void lbxFolders_DragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
                 e.Effects = DragDropEffects.Link;
-            }
             else
-            {
                 e.Effects = DragDropEffects.None;
-            }
         }
+
+        #endregion
     }
 }

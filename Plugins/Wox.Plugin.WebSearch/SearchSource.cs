@@ -1,10 +1,9 @@
-﻿using System.IO;
-using System.Windows.Media;
-using JetBrains.Annotations;
-using Newtonsoft.Json;
-
-namespace Wox.Plugin.WebSearch
+﻿namespace Wox.Plugin.WebSearch
 {
+    using System.IO;
+    using JetBrains.Annotations;
+    using Newtonsoft.Json;
+
     public class SearchSource : BaseModel
     {
         public const string DefaultIcon = "web_search.png";
@@ -14,6 +13,9 @@ namespace Wox.Plugin.WebSearch
         [NotNull]
         public string Icon { get; set; } = DefaultIcon;
 
+        public string Url { get; set; }
+        public bool Enabled { get; set; }
+
         /// <summary>
         /// All icon should be put under Images directory
         /// </summary>
@@ -21,8 +23,7 @@ namespace Wox.Plugin.WebSearch
         [JsonIgnore]
         internal string IconPath => Path.Combine(Main.ImagesDirectory, Icon);
 
-        public string Url { get; set; }
-        public bool Enabled { get; set; }
+        #region Public
 
         public SearchSource DeepCopy()
         {
@@ -36,5 +37,7 @@ namespace Wox.Plugin.WebSearch
             };
             return webSearch;
         }
+
+        #endregion
     }
 }

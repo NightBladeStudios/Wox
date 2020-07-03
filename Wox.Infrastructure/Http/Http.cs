@@ -1,18 +1,21 @@
-﻿using System.IO;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using JetBrains.Annotations;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox.Infrastructure.Http
+﻿namespace Wox.Infrastructure.Http
 {
+    using System.IO;
+    using System.Net;
+    using System.Net.Http;
+    using System.Text;
+    using System.Threading.Tasks;
+    using JetBrains.Annotations;
+    using Logger;
+    using NLog;
+    using UserSettings;
+
     public static class Http
     {
+        public static HttpProxy Proxy { private get; set; }
         private const string UserAgent = @"Mozilla/5.0 (Trident/7.0; rv:11.0) like Gecko";
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         static Http()
         {
@@ -24,9 +27,7 @@ namespace Wox.Infrastructure.Http
                                                     | SecurityProtocolType.Ssl3;
         }
 
-        public static HttpProxy Proxy { private get; set; }
-
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        #region Public
 
         public static IWebProxy WebProxy()
         {
@@ -46,15 +47,13 @@ namespace Wox.Infrastructure.Http
                     return webProxy;
                 }
             }
-            else
-            {
-                return WebRequest.GetSystemWebProxy();
-            }
+
+            return WebRequest.GetSystemWebProxy();
         }
 
         public static void Download([NotNull] string url, [NotNull] string filePath)
         {
-            var client = new WebClient { Proxy = WebProxy() };
+            var client = new WebClient {Proxy = WebProxy()};
             client.Headers.Add("user-agent", UserAgent);
             client.DownloadFile(url, filePath);
         }
@@ -75,14 +74,11 @@ namespace Wox.Infrastructure.Http
             {
                 var content = await reader.ReadToEndAsync();
                 if (response.StatusCode == HttpStatusCode.OK)
-                {
                     return content;
-                }
-                else
-                {
-                    throw new HttpRequestException($"Error code <{response.StatusCode}> with content <{content}> returned from <{url}>");
-                }
+                throw new HttpRequestException($"Error code <{response.StatusCode}> with content <{content}> returned from <{url}>");
             }
         }
+
+        #endregion
     }
 }

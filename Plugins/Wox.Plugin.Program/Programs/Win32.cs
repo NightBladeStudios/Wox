@@ -1,21 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Win32;
-using NLog;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Microsoft.WindowsAPICodePack.Shell;
-using Windows.ApplicationModel.Resources;
-
 namespace Wox.Plugin.Program.Programs
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Security;
+    using System.Threading.Tasks;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Microsoft.Win32;
+    using NLog;
+
     [Serializable]
     public class Win32 : IProgram
     {
@@ -28,7 +24,9 @@ namespace Wox.Plugin.Program.Programs
         public bool Enabled { get; set; }
         public string Location => ParentDirectory;
 
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        #region Public
 
         public Result Result(string query, IPublicAPI api)
         {
@@ -46,7 +44,7 @@ namespace Wox.Plugin.Program.Programs
                     };
 
                     if (e.SpecialKeyState.CtrlPressed)
-                        Main.StartProcess(Process.Start, ShellCommand.SetProcessStartInfo(info.FileName, info.WorkingDirectory, "", "runas"));
+                        Main.StartProcess(Process.Start, info.FileName.SetProcessStartInfo(info.WorkingDirectory, "", "runas"));
                     else
                         Main.StartProcess(Process.Start, info);
 
@@ -114,181 +112,13 @@ namespace Wox.Plugin.Program.Programs
         }
 
 
-
         public override string ToString()
         {
             return ExecutableName;
         }
 
-        private static Win32 Win32Program(string path)
-        {
-            try
-            {
-                var p = new Win32
-                {
-                    Name = Path.GetFileNameWithoutExtension(path),
-                    IcoPath = path,
-                    FullPath = path,
-                    ParentDirectory = Directory.GetParent(path).FullName,
-                    Valid = true,
-                    Enabled = true
-                };
-                return p;
-            }
-            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
-            {
-                Logger.WoxError($"Permission denied {path}");
-                return new Win32() { Valid = false, Enabled = false };
-            }
-        }
-
-        private static IEnumerable<string> ProgramPaths(string directory, string[] suffixes)
-        {
-            if (!Directory.Exists(directory))
-                return new string[] { };
-            var paths = new List<string>();
-            try
-            {
-                IEnumerable<string> files = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories);
-                foreach (var path in files)
-                {
-                    var extension = Path.GetExtension(path);
-                    if (extension.Length > 1)
-                    {
-                        if (suffixes.Contains(extension.Substring(1)))
-                        {
-                            paths.Add(path);
-                        }
-                    }
-                }
-            }
-            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
-            {
-                Logger.WoxError($"Permission denied {directory}");
-            }
-            catch (DirectoryNotFoundException)
-            {
-                Logger.WoxError($"Directory not found {directory}");
-            }
-
-            return paths;
-        }
-
-        private static string Extension(string path)
-        {
-            var extension = Path.GetExtension(path)?.ToLower();
-            if (!string.IsNullOrEmpty(extension))
-            {
-                return extension.Substring(1);
-            }
-            else
-            {
-                return string.Empty;
-            }
-        }
-
-        private static ParallelQuery<Win32> UnregisteredPrograms(List<ProgramSource> sources, string[] suffixes)
-        {
-            var paths = sources.Where(s => Directory.Exists(s.Location)).SelectMany(s => ProgramPaths(s.Location, suffixes));
-
-            var programs = paths.AsParallel().Select(Win32Program);
-            return programs;
-        }
-
-        private static ParallelQuery<Win32> StartMenuPrograms(string[] suffixes)
-        {
-            var directory1 = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
-            // some program is not inside program directory, e.g. docker desktop
-            directory1 = Directory.GetParent(directory1).FullName;
-            var directory2 = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
-            directory2 = Directory.GetParent(directory2).FullName;
-            var paths1 = ProgramPaths(directory1, suffixes);
-            var paths2 = ProgramPaths(directory2, suffixes);
-            var paths = paths1.Concat(paths2);
-
-            var programs = paths.AsParallel().Select(Win32Program);
-            return programs;
-        }
-
-        private static ParallelQuery<Win32> AppPathsPrograms(string[] suffixes)
-        {
-            // https://msdn.microsoft.com/en-us/library/windows/desktop/ee872121
-            const string appPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
-            var programs = new List<Win32>();
-            using (var root = Registry.LocalMachine.OpenSubKey(appPaths))
-            {
-                if (root != null)
-                {
-                    programs.AddRange(GetProgramsFromRegistry(root));
-                }
-            }
-            using (var root = Registry.CurrentUser.OpenSubKey(appPaths))
-            {
-                if (root != null)
-                {
-                    programs.AddRange(GetProgramsFromRegistry(root));
-                }
-            }
-
-            var filtered = programs.AsParallel().Where(p => suffixes.Contains(Extension(p.ExecutableName)));
-            return filtered;
-        }
-
-        private static IEnumerable<Win32> GetProgramsFromRegistry(RegistryKey root)
-        {
-            return root
-                    .GetSubKeyNames()
-                    .Select(x => GetProgramPathFromRegistrySubKeys(root, x))
-                    .Distinct()
-                    .Select(x => GetProgramFromPath(x));
-        }
-
-        private static string GetProgramPathFromRegistrySubKeys(RegistryKey root, string subkey)
-        {
-            var path = string.Empty;
-            try
-            {
-                using (var key = root.OpenSubKey(subkey))
-                {
-                    if (key == null)
-                        return string.Empty;
-
-                    var defaultValue = string.Empty;
-                    path = key.GetValue(defaultValue) as string;
-                }
-
-                if (string.IsNullOrEmpty(path))
-                    return string.Empty;
-
-                // fix path like this: ""\"C:\\folder\\executable.exe\""
-                return path = path.Trim('"', ' ');
-            }
-            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
-            {
-                Logger.WoxError($"Permission denied {root.ToString()} {subkey}");
-                return string.Empty;
-            }
-        }
-
-        private static Win32 GetProgramFromPath(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                return new Win32();
-
-            path = Environment.ExpandEnvironmentVariables(path);
-
-            if (!File.Exists(path))
-                return new Win32();
-
-            var entry = Win32Program(path);
-            entry.ExecutableName = Path.GetFileName(path);
-
-            return entry;
-        }
-
         public static Win32[] All(Settings settings)
         {
-
             var programs = new List<Win32>().AsParallel();
             try
             {
@@ -328,8 +158,166 @@ namespace Wox.Plugin.Program.Programs
                 Logger.WoxError("Cannot read win32", e);
                 return new Win32[] { };
             }
-            return programs.ToArray();
 
+            return programs.ToArray();
         }
+
+        #endregion
+
+        #region Private
+
+        private static Win32 Win32Program(string path)
+        {
+            try
+            {
+                var p = new Win32
+                {
+                    Name = Path.GetFileNameWithoutExtension(path),
+                    IcoPath = path,
+                    FullPath = path,
+                    ParentDirectory = Directory.GetParent(path).FullName,
+                    Valid = true,
+                    Enabled = true
+                };
+                return p;
+            }
+            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
+            {
+                Logger.WoxError($"Permission denied {path}");
+                return new Win32 {Valid = false, Enabled = false};
+            }
+        }
+
+        private static IEnumerable<string> ProgramPaths(string directory, string[] suffixes)
+        {
+            if (!Directory.Exists(directory))
+                return new string[] { };
+            var paths = new List<string>();
+            try
+            {
+                var files = Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories);
+                foreach (var path in files)
+                {
+                    var extension = Path.GetExtension(path);
+                    if (extension.Length > 1)
+                        if (suffixes.Contains(extension.Substring(1)))
+                            paths.Add(path);
+                }
+            }
+            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
+            {
+                Logger.WoxError($"Permission denied {directory}");
+            }
+            catch (DirectoryNotFoundException)
+            {
+                Logger.WoxError($"Directory not found {directory}");
+            }
+
+            return paths;
+        }
+
+        private static string Extension(string path)
+        {
+            var extension = Path.GetExtension(path)?.ToLower();
+            if (!string.IsNullOrEmpty(extension))
+                return extension.Substring(1);
+            return string.Empty;
+        }
+
+        private static ParallelQuery<Win32> UnregisteredPrograms(List<ProgramSource> sources, string[] suffixes)
+        {
+            var paths = sources.Where(s => Directory.Exists(s.Location)).SelectMany(s => ProgramPaths(s.Location, suffixes));
+
+            var programs = paths.AsParallel().Select(Win32Program);
+            return programs;
+        }
+
+        private static ParallelQuery<Win32> StartMenuPrograms(string[] suffixes)
+        {
+            var directory1 = Environment.GetFolderPath(Environment.SpecialFolder.Programs);
+            // some program is not inside program directory, e.g. docker desktop
+            directory1 = Directory.GetParent(directory1).FullName;
+            var directory2 = Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms);
+            directory2 = Directory.GetParent(directory2).FullName;
+            var paths1 = ProgramPaths(directory1, suffixes);
+            var paths2 = ProgramPaths(directory2, suffixes);
+            var paths = paths1.Concat(paths2);
+
+            var programs = paths.AsParallel().Select(Win32Program);
+            return programs;
+        }
+
+        private static ParallelQuery<Win32> AppPathsPrograms(string[] suffixes)
+        {
+            // https://msdn.microsoft.com/en-us/library/windows/desktop/ee872121
+            const string appPaths = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths";
+            var programs = new List<Win32>();
+            using (var root = Registry.LocalMachine.OpenSubKey(appPaths))
+            {
+                if (root != null) programs.AddRange(GetProgramsFromRegistry(root));
+            }
+
+            using (var root = Registry.CurrentUser.OpenSubKey(appPaths))
+            {
+                if (root != null) programs.AddRange(GetProgramsFromRegistry(root));
+            }
+
+            var filtered = programs.AsParallel().Where(p => suffixes.Contains(Extension(p.ExecutableName)));
+            return filtered;
+        }
+
+        private static IEnumerable<Win32> GetProgramsFromRegistry(RegistryKey root)
+        {
+            return root
+                .GetSubKeyNames()
+                .Select(x => GetProgramPathFromRegistrySubKeys(root, x))
+                .Distinct()
+                .Select(x => GetProgramFromPath(x));
+        }
+
+        private static string GetProgramPathFromRegistrySubKeys(RegistryKey root, string subKey)
+        {
+            var path = string.Empty;
+            try
+            {
+                using (var key = root.OpenSubKey(subKey))
+                {
+                    if (key == null)
+                        return string.Empty;
+
+                    var defaultValue = string.Empty;
+                    path = key.GetValue(defaultValue) as string;
+                }
+
+                if (string.IsNullOrEmpty(path))
+                    return string.Empty;
+
+                // fix path like this: ""\"C:\\folder\\executable.exe\""
+                return path = path.Trim('"', ' ');
+            }
+            catch (Exception e) when (e is SecurityException || e is UnauthorizedAccessException)
+            {
+                Logger.WoxError($"Permission denied {root} {subKey}");
+                return string.Empty;
+            }
+        }
+
+        private static Win32 GetProgramFromPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return new Win32();
+
+            path = Environment.ExpandEnvironmentVariables(path);
+
+            if (!File.Exists(path))
+                return new Win32();
+
+            var entry = Win32Program(path);
+            entry.ExecutableName = Path.GetFileName(path);
+
+            return entry;
+        }
+
+        #endregion
     }
 }

@@ -1,17 +1,33 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using Wox.Infrastructure.Logger;
-using Wox.Plugin.Everything.Everything.Exceptions;
-
-namespace Wox.Plugin.Everything.Everything
+﻿namespace Wox.Plugin.Everything.Everything
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Runtime.InteropServices;
+    using System.Text;
+    using System.Threading;
+    using Exceptions;
 
     public sealed class EverythingApi
     {
+        public enum RequestFlag
+        {
+            FileName = 0x00000001,
+            Path = 0x00000002,
+            FullPathAndFileName = 0x00000004,
+            Extension = 0x00000008,
+            Size = 0x00000010,
+            DateCreated = 0x00000020,
+            DateModified = 0x00000040,
+            DateAccessed = 0x00000080,
+            Attributes = 0x00000100,
+            FileListFileName = 0x00000200,
+            RunCount = 0x00000400,
+            DateRun = 0x00000800,
+            DateRecentlyChanged = 0x00001000,
+            HighlightedFileName = 0x00002000,
+            HighlightedPath = 0x00004000,
+            HighlightedFullPathAndFileName = 0x00008000
+        }
 
         public enum StateCode
         {
@@ -24,26 +40,6 @@ namespace Wox.Plugin.Everything.Everything
             InvalidIndexError,
             InvalidCallError
         }
-        public enum RequestFlag
-        {
-
-            FileName = 0x00000001,
-            Path = 0x00000002,
-            FullPathAndFileName = 0x00000004,
-            Extenssion = 0x00000008,
-            Size = 0x00000010,
-            DateCreated = 0x00000020,
-            DateModified = 0x00000040,
-            DateAccessed = 0x00000080,
-            Attributes = 0x00000100,
-            FileListFileName = 0x00000200,
-            RunCount = 0x00000400,
-            DateRun = 0x00000800,
-            DateRecentlyChanged = 0x00001000,
-            HighlightedFileName = 0x00002000,
-            HighlightedPath = 0x00004000,
-            HighlightedFullPathAndFileName = 0x00008000,
-        }
 
         /// <summary>
         /// Gets or sets a value indicating whether [match path].
@@ -51,14 +47,8 @@ namespace Wox.Plugin.Everything.Everything
         /// <value><c>true</c> if [match path]; otherwise, <c>false</c>.</value>
         public bool MatchPath
         {
-            get
-            {
-                return EverythingApiDllImport.Everything_GetMatchPath();
-            }
-            set
-            {
-                EverythingApiDllImport.Everything_SetMatchPath(value);
-            }
+            get => EverythingApiDllImport.Everything_GetMatchPath();
+            set => EverythingApiDllImport.Everything_SetMatchPath(value);
         }
 
         /// <summary>
@@ -67,14 +57,8 @@ namespace Wox.Plugin.Everything.Everything
         /// <value><c>true</c> if [match case]; otherwise, <c>false</c>.</value>
         public bool MatchCase
         {
-            get
-            {
-                return EverythingApiDllImport.Everything_GetMatchCase();
-            }
-            set
-            {
-                EverythingApiDllImport.Everything_SetMatchCase(value);
-            }
+            get => EverythingApiDllImport.Everything_GetMatchCase();
+            set => EverythingApiDllImport.Everything_SetMatchCase(value);
         }
 
         /// <summary>
@@ -83,14 +67,8 @@ namespace Wox.Plugin.Everything.Everything
         /// <value><c>true</c> if [match whole word]; otherwise, <c>false</c>.</value>
         public bool MatchWholeWord
         {
-            get
-            {
-                return EverythingApiDllImport.Everything_GetMatchWholeWord();
-            }
-            set
-            {
-                EverythingApiDllImport.Everything_SetMatchWholeWord(value);
-            }
+            get => EverythingApiDllImport.Everything_GetMatchWholeWord();
+            set => EverythingApiDllImport.Everything_SetMatchWholeWord(value);
         }
 
         /// <summary>
@@ -99,15 +77,14 @@ namespace Wox.Plugin.Everything.Everything
         /// <value><c>true</c> if [enable regex]; otherwise, <c>false</c>.</value>
         public bool EnableRegex
         {
-            get
-            {
-                return EverythingApiDllImport.Everything_GetRegex();
-            }
-            set
-            {
-                EverythingApiDllImport.Everything_SetRegex(value);
-            }
+            get => EverythingApiDllImport.Everything_GetRegex();
+            set => EverythingApiDllImport.Everything_SetRegex(value);
         }
+
+        [DllImport("kernel32.dll")]
+        private static extern int LoadLibrary(string name);
+
+        #region Public
 
         /// <summary>
         /// Searches the specified key word and reset the everything API afterwards
@@ -126,7 +103,7 @@ namespace Wox.Plugin.Everything.Everything
             if (maxCount < 0)
                 throw new ArgumentOutOfRangeException(nameof(maxCount));
 
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             if (keyWord.StartsWith("@"))
             {
                 EverythingApiDllImport.Everything_SetRegex(true);
@@ -137,56 +114,49 @@ namespace Wox.Plugin.Everything.Everything
                 EverythingApiDllImport.Everything_SetRegex(false);
             }
 
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             EverythingApiDllImport.Everything_SetRequestFlags(RequestFlag.HighlightedFileName | RequestFlag.HighlightedFullPathAndFileName);
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             EverythingApiDllImport.Everything_SetOffset(0);
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             EverythingApiDllImport.Everything_SetMax(maxCount);
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             EverythingApiDllImport.Everything_SetSearchW(keyWord);
 
-            if (token.IsCancellationRequested) { return results; }
+            if (token.IsCancellationRequested) return results;
             if (!EverythingApiDllImport.Everything_QueryW(true))
             {
                 CheckAndThrowExceptionOnError();
                 return results;
             }
 
-            if (token.IsCancellationRequested) { return results; }
-            int count = EverythingApiDllImport.Everything_GetNumResults();
-            for (int idx = 0; idx < count; ++idx)
+            if (token.IsCancellationRequested) return results;
+            var count = EverythingApiDllImport.Everything_GetNumResults();
+            for (var idx = 0; idx < count; ++idx)
             {
-                if (token.IsCancellationRequested) { return results; }
+                if (token.IsCancellationRequested) return results;
                 // https://www.voidtools.com/forum/viewtopic.php?t=8169
-                string fileNameHighted = Marshal.PtrToStringUni(EverythingApiDllImport.Everything_GetResultHighlightedFileNameW(idx));
-                string fullPathHighted = Marshal.PtrToStringUni(EverythingApiDllImport.Everything_GetResultHighlightedFullPathAndFileNameW(idx));
-                if (fileNameHighted == null | fullPathHighted == null)
-                {
-                    CheckAndThrowExceptionOnError();
-                }
-                if (token.IsCancellationRequested) { return results; }
-                ConvertHightlightFormat(fileNameHighted, out List<int> fileNameHightlightData, out string fileName);
-                if (token.IsCancellationRequested) { return results; }
-                ConvertHightlightFormat(fullPathHighted, out List<int> fullPathHightlightData, out string fullPath);
+                var fileNameHighlighted = Marshal.PtrToStringUni(EverythingApiDllImport.Everything_GetResultHighlightedFileNameW(idx));
+                var fullPathHighlighted = Marshal.PtrToStringUni(EverythingApiDllImport.Everything_GetResultHighlightedFullPathAndFileNameW(idx));
+                if ((fileNameHighlighted == null) | (fullPathHighlighted == null)) CheckAndThrowExceptionOnError();
+                if (token.IsCancellationRequested) return results;
+                ConvertHighlightFormat(fileNameHighlighted, out var fileNameHighlightData, out var fileName);
+                if (token.IsCancellationRequested) return results;
+                ConvertHighlightFormat(fullPathHighlighted, out var fullPathHighlightData, out var fullPath);
 
                 var result = new SearchResult
                 {
                     FileName = fileName,
-                    FileNameHightData = fileNameHightlightData,
+                    FileNameHighlightData = fileNameHighlightData,
                     FullPath = fullPath,
-                    FullPathHightData = fullPathHightlightData,
+                    FullPathHighlightData = fullPathHighlightData
                 };
 
-                if (token.IsCancellationRequested) { return results; }
+                if (token.IsCancellationRequested) return results;
                 if (EverythingApiDllImport.Everything_IsFolderResult(idx))
-                {
                     result.Type = ResultType.Folder;
-                }
                 else
-                {
                     result.Type = ResultType.File;
-                }
 
                 results.Add(result);
             }
@@ -194,16 +164,25 @@ namespace Wox.Plugin.Everything.Everything
             return results;
         }
 
-        private static void ConvertHightlightFormat(string contentHightlighted, out List<int> hightlightData, out string fn)
+        public void Load(string sdkPath)
         {
-            hightlightData = new List<int>();
-            StringBuilder content = new StringBuilder();
-            bool flag = false;
-            char[] contentArray = contentHightlighted.ToCharArray();
-            int count = 0;
-            for (int i = 0; i < contentArray.Length; i++)
+            LoadLibrary(sdkPath);
+        }
+
+        #endregion
+
+        #region Private
+
+        private static void ConvertHighlightFormat(string contentHighlighted, out List<int> highlightData, out string fn)
+        {
+            highlightData = new List<int>();
+            var content = new StringBuilder();
+            var flag = false;
+            var contentArray = contentHighlighted.ToCharArray();
+            var count = 0;
+            for (var i = 0; i < contentArray.Length; i++)
             {
-                char current = contentHightlighted[i];
+                var current = contentHighlighted[i];
                 if (current == '*')
                 {
                     flag = !flag;
@@ -211,22 +190,12 @@ namespace Wox.Plugin.Everything.Everything
                 }
                 else
                 {
-                    if (flag)
-                    {
-                        hightlightData.Add(i - count);
-                    }
+                    if (flag) highlightData.Add(i - count);
                     content.Append(current);
                 }
             }
+
             fn = content.ToString();
-        }
-
-        [DllImport("kernel32.dll")]
-        private static extern int LoadLibrary(string name);
-
-        public void Load(string sdkPath)
-        {
-            LoadLibrary(sdkPath);
         }
 
         private static void CheckAndThrowExceptionOnError()
@@ -249,5 +218,7 @@ namespace Wox.Plugin.Everything.Everything
                     throw new RegisterClassExException();
             }
         }
+
+        #endregion
     }
 }

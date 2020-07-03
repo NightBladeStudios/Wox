@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_controlpanel_plugin_name">Control Panel</system:String>
     <system:String x:Key="wox_plugin_controlpanel_plugin_description">Search within the Control Panel</system:String>
-    
+
 </ResourceDictionary>

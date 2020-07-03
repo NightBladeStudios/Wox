@@ -1,49 +1,90 @@
-using System;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Collections.Generic;
-using System.Threading;
-using System.Globalization;
-
-using CommandLine;
-using NLog;
-
-using Wox.Core;
-using Wox.Core.Configuration;
-using Wox.Core.Plugin;
-using Wox.Core.Resource;
-using Wox.Helper;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Http;
-using Wox.Image;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-using Wox.ViewModel;
-using Stopwatch = Wox.Infrastructure.Stopwatch;
-using Wox.Infrastructure.Exception;
-using Sentry;
-
 namespace Wox
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Globalization;
+    using System.Threading;
+    using System.Windows;
+    using CommandLine;
+    using Core.Configuration;
+    using Core.Plugin;
+    using Core.Resource;
+    using Helper;
+    using Image;
+    using Infrastructure;
+    using Infrastructure.Exception;
+    using Infrastructure.Http;
+    using Infrastructure.Logger;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using ViewModel;
+
     public partial class App : IDisposable, ISingleInstanceApp
     {
         public static PublicAPIInstance API { get; private set; }
-        private const string Unique = "Wox_Unique_Application_Mutex";
-        private static bool _disposed;
-        private MainViewModel _mainVM;
-        private SettingWindowViewModel _settingsVM;
-        private readonly Portable _portable = new Portable();
-        private StringMatcher _stringMatcher;
-        private static string _systemLanguage;
 
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        [STAThread]
+        public static void Main()
+        {
+            _systemLanguage = CultureInfo.CurrentUICulture.Name;
+            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
+
+            using (ErrorReporting.InitializedSentry(_systemLanguage))
+            {
+                if (SingleInstance<App>.InitializeAsFirstInstance(Unique))
+                    using (var application = new App())
+                    {
+                        application.InitializeComponent();
+                        application.Run();
+                    }
+            }
+        }
 
         private class Options
         {
             [Option('q', "query", Required = false, HelpText = "Specify text to query on startup.")]
             public string QueryText { get; set; }
         }
+
+        private const string Unique = "Wox_Unique_Application_Mutex";
+        private static bool _disposed;
+        private static string _systemLanguage;
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly Portable _portable = new Portable();
+        private MainViewModel _mainVM;
+        private SettingWindowViewModel _settingsVM;
+        private StringMatcher _stringMatcher;
+
+        #region Public
+
+        public void Dispose()
+        {
+            Logger.WoxInfo("Wox Start Displose");
+            // if sessionending is called, exit proverbially be called when log off / shutdown
+            // but if sessionending is not called, exit won't be called when log off / shutdown
+            if (!_disposed)
+            {
+                API?.SaveAppAllSettings();
+                _disposed = true;
+                // todo temp fix to exist application
+                // should notify child thread programmaly
+                Environment.Exit(0);
+            }
+
+            Logger.WoxInfo("Wox End Displose");
+        }
+
+        public void OnSecondAppStarted(IList<string> args)
+        {
+            ParseCommandLineArgs(args);
+            Current.MainWindow.Visibility = Visibility.Visible;
+        }
+
+        #endregion
+
+        #region Private
 
         private void ParseCommandLineArgs(IList<string> args)
         {
@@ -56,26 +97,6 @@ namespace Wox
                     if (o.QueryText != null && _mainVM != null)
                         _mainVM.ChangeQueryText(o.QueryText);
                 });
-        }
-
-        [STAThread]
-        public static void Main()
-        {
-            _systemLanguage = CultureInfo.CurrentUICulture.Name;
-            Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
-            Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
-
-            using (ErrorReporting.InitializedSentry(_systemLanguage))
-            {
-                if (SingleInstance<App>.InitializeAsFirstInstance(Unique))
-                {
-                    using (var application = new App())
-                    {
-                        application.InitializeComponent();
-                        application.Run();
-                    }
-                }
-            }
         }
 
         private void OnStartup(object sender, StartupEventArgs e)
@@ -137,22 +158,15 @@ namespace Wox
             Log.updateSettingsInfo(Settings.Instance.Language);
             Settings.Instance.PropertyChanged += (s, ev) =>
             {
-                if (ev.PropertyName == nameof(Settings.Instance.Language))
-                {
-                    Log.updateSettingsInfo(Settings.Instance.Language);
-                }
+                if (ev.PropertyName == nameof(Settings.Instance.Language)) Log.updateSettingsInfo(Settings.Instance.Language);
             };
         }
 
         private void AutoStartup()
         {
             if (Settings.Instance.StartWoxOnSystemStartup)
-            {
                 if (!SettingWindow.StartupSet())
-                {
                     SettingWindow.SetStartup();
-                }
-            }
         }
 
         private void RegisterExitEvents()
@@ -181,26 +195,6 @@ namespace Wox
             AppDomain.CurrentDomain.UnhandledException += ErrorReporting.UnhandledExceptionHandleMain;
         }
 
-        public void Dispose()
-        {
-            Logger.WoxInfo("Wox Start Displose");
-            // if sessionending is called, exit proverbially be called when log off / shutdown
-            // but if sessionending is not called, exit won't be called when log off / shutdown
-            if (!_disposed)
-            {
-                API?.SaveAppAllSettings();
-                _disposed = true;
-                // todo temp fix to exist application
-                // should notify child thread programmaly
-                Environment.Exit(0);
-            }
-            Logger.WoxInfo("Wox End Displose");
-        }
-
-        public void OnSecondAppStarted(IList<string> args)
-        {
-            ParseCommandLineArgs(args);
-            Current.MainWindow.Visibility = Visibility.Visible;
-        }
+        #endregion
     }
 }

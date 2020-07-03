@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-
 namespace Wox.Core.Resource
 {
+    using System.Collections.Generic;
+
     internal static class AvailableLanguages
     {
         public static Language English = new Language("en", "English");
@@ -26,9 +26,11 @@ namespace Wox.Core.Resource
         public static Language Hebrew = new Language("he", "עברית");
         public static Language Portuguese = new Language("pt", "Português");
 
+        #region Public
+
         public static List<Language> GetAvailableLanguages()
         {
-            List<Language> languages = new List<Language>
+            var languages = new List<Language>
             {
                 English,
                 Chinese,
@@ -54,5 +56,7 @@ namespace Wox.Core.Resource
             };
             return languages;
         }
+
+        #endregion
     }
 }

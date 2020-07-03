@@ -1,22 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Windows;
-using NHotkey;
-using NHotkey.Wpf;
-using Wox.Core.Resource;
-using Wox.Infrastructure.Hotkey;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox
+﻿namespace Wox
 {
+    using System;
+    using System.Collections.ObjectModel;
+    using System.Linq;
+    using System.Windows;
+    using Core.Resource;
+    using Infrastructure.Hotkey;
+    using Infrastructure.UserSettings;
+    using NHotkey;
+    using NHotkey.Wpf;
+
     public partial class CustomQueryHotkeySetting : Window
     {
+        private readonly Settings _settings;
         private SettingWindow _settingWidow;
         private bool update;
         private CustomPluginHotkey updateCustomHotkey;
-        private Settings _settings;
 
         public CustomQueryHotkeySetting(SettingWindow settingWidow, Settings settings)
         {
@@ -24,6 +23,28 @@ namespace Wox
             InitializeComponent();
             _settings = settings;
         }
+
+        #region Public
+
+        public void UpdateItem(CustomPluginHotkey item)
+        {
+            updateCustomHotkey = _settings.CustomPluginHotkeys.FirstOrDefault(o => o.ActionKeyword == item.ActionKeyword && o.Hotkey == item.Hotkey);
+            if (updateCustomHotkey == null)
+            {
+                MessageBox.Show(InternationalizationManager.Instance.GetTranslation("invalidPluginHotkey"));
+                Close();
+                return;
+            }
+
+            tbAction.Text = updateCustomHotkey.ActionKeyword;
+            ctlHotkey.SetHotkey(updateCustomHotkey.Hotkey, false);
+            update = true;
+            lblAdd.Text = InternationalizationManager.Instance.GetTranslation("update");
+        }
+
+        #endregion
+
+        #region Private
 
         private void BtnCancel_OnClick(object sender, RoutedEventArgs e)
         {
@@ -40,10 +61,7 @@ namespace Wox
                     return;
                 }
 
-                if (_settings.CustomPluginHotkeys == null)
-                {
-                    _settings.CustomPluginHotkeys = new ObservableCollection<CustomPluginHotkey>();
-                }
+                if (_settings.CustomPluginHotkeys == null) _settings.CustomPluginHotkeys = new ObservableCollection<CustomPluginHotkey>();
 
                 var pluginHotkey = new CustomPluginHotkey
                 {
@@ -66,6 +84,7 @@ namespace Wox
                     MessageBox.Show(InternationalizationManager.Instance.GetTranslation("hotkeyIsNotUnavailable"));
                     return;
                 }
+
                 var oldHotkey = updateCustomHotkey.Hotkey;
                 updateCustomHotkey.ActionKeyword = tbAction.Text;
                 updateCustomHotkey.Hotkey = ctlHotkey.CurrentHotkey.ToString();
@@ -82,22 +101,6 @@ namespace Wox
             Close();
         }
 
-        public void UpdateItem(CustomPluginHotkey item)
-        {
-            updateCustomHotkey = _settings.CustomPluginHotkeys.FirstOrDefault(o => o.ActionKeyword == item.ActionKeyword && o.Hotkey == item.Hotkey);
-            if (updateCustomHotkey == null)
-            {
-                MessageBox.Show(InternationalizationManager.Instance.GetTranslation("invalidPluginHotkey"));
-                Close();
-                return;
-            }
-
-            tbAction.Text = updateCustomHotkey.ActionKeyword;
-            ctlHotkey.SetHotkey(updateCustomHotkey.Hotkey, false);
-            update = true;
-            lblAdd.Text = InternationalizationManager.Instance.GetTranslation("update");
-        }
-
         private void BtnTestActionKeyword_OnClick(object sender, RoutedEventArgs e)
         {
             App.API.ChangeQuery(tbAction.Text);
@@ -106,24 +109,23 @@ namespace Wox
 
         private void RemoveHotkey(string hotkeyStr)
         {
-            if (!string.IsNullOrEmpty(hotkeyStr))
-            {
-                HotkeyManager.Current.Remove(hotkeyStr);
-            }
+            if (!string.IsNullOrEmpty(hotkeyStr)) HotkeyManager.Current.Remove(hotkeyStr);
         }
 
         private void SetHotkey(HotkeyModel hotkey, EventHandler<HotkeyEventArgs> action)
         {
-            string hotkeyStr = hotkey.ToString();
+            var hotkeyStr = hotkey.ToString();
             try
             {
                 HotkeyManager.Current.AddOrReplace(hotkeyStr, hotkey.CharKey, hotkey.ModifierKeys, action);
             }
             catch (Exception)
             {
-                string errorMsg = string.Format(InternationalizationManager.Instance.GetTranslation("registerHotkeyFailed"), hotkeyStr);
+                var errorMsg = string.Format(InternationalizationManager.Instance.GetTranslation("registerHotkeyFailed"), hotkeyStr);
                 MessageBox.Show(errorMsg);
             }
         }
+
+        #endregion
     }
 }

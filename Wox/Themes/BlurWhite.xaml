@@ -9,10 +9,11 @@
 
     <Style x:Key="QueryBoxStyle" BasedOn="{StaticResource BaseQueryBoxStyle}" TargetType="{x:Type TextBox}">
         <Setter Property="Foreground" Value="#FF000000" />
-        <Setter Property="CaretBrush" Value="#000000"/>
+        <Setter Property="CaretBrush" Value="#000000" />
     </Style>
 
-    <Style x:Key="QueryTextSuggestionBoxStyle" BasedOn="{StaticResource BaseQueryTextSuggestionBoxStyle}" TargetType="{x:Type TextBox}">
+    <Style x:Key="QueryTextSuggestionBoxStyle" BasedOn="{StaticResource BaseQueryTextSuggestionBoxStyle}"
+           TargetType="{x:Type TextBox}">
         <Setter Property="Foreground" Value="DimGray" />
         <Setter Property="Background" Value="#01FFFFFF" />
     </Style>
@@ -52,9 +53,9 @@
            TargetType="{x:Type TextBlock}">
         <Setter Property="Foreground" Value="#FFFFFFFF" />
     </Style>
-    <SolidColorBrush x:Key="ItemHighlightColor" Color="DimGray"/>
-    <SolidColorBrush x:Key="ItemSelectedHighlightColor" Color="Black"/>
-    <SolidColorBrush x:Key="ItemSelectedBackgroundColor" Color="#356ef3"/>
+    <SolidColorBrush x:Key="ItemHighlightColor" Color="DimGray" />
+    <SolidColorBrush x:Key="ItemSelectedHighlightColor" Color="Black" />
+    <SolidColorBrush x:Key="ItemSelectedBackgroundColor" Color="#356ef3" />
 
     <!-- button style in the middle of the scrollbar -->
     <Style x:Key="ThumbStyle" BasedOn="{StaticResource BaseThumbStyle}" TargetType="{x:Type Thumb}" />

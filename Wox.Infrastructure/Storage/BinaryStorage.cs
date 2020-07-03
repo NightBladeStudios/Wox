@@ -1,23 +1,24 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters;
-using System.Runtime.Serialization.Formatters.Binary;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox.Infrastructure.Storage
+﻿namespace Wox.Infrastructure.Storage
 {
+    using System;
+    using System.IO;
+    using System.Reflection;
+    using System.Runtime.Serialization;
+    using System.Runtime.Serialization.Formatters;
+    using System.Runtime.Serialization.Formatters.Binary;
+    using Logger;
+    using NLog;
+    using UserSettings;
+
     /// <summary>
     /// Stroage object using binary data
     /// Normally, it has better performance, but not readable
     /// </summary>
     public class BinaryStorage<T>
     {
+        public string FilePath { get; }
 
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         public BinaryStorage(string filename)
         {
@@ -29,7 +30,7 @@ namespace Wox.Infrastructure.Storage
             FilePath = Path.Combine(directoryPath, $"{filename}{fileSuffix}");
         }
 
-        public string FilePath { get; }
+        #region Public
 
         public T TryLoad(T defaultData)
         {
@@ -48,60 +49,17 @@ namespace Wox.Infrastructure.Storage
                     return d;
                 }
             }
-            else
-            {
-                Logger.WoxInfo("Cache file not exist, load default data");
-                Save(defaultData);
-                return defaultData;
-            }
-        }
 
-        private T Deserialize(FileStream stream, T defaultData)
-        {
-            //http://stackoverflow.com/questions/2120055/binaryformatter-deserialize-gives-serializationexception
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            BinaryFormatter binaryFormatter = new BinaryFormatter
-            {
-                AssemblyFormat = FormatterAssemblyStyle.Simple
-            };
-
-            try
-            {
-                var t = ((T)binaryFormatter.Deserialize(stream)).NonNull();
-                return t;
-            }
-            catch (System.Exception e)
-            {
-                Logger.WoxError($"Deserialize error for file <{FilePath}>", e);
-                return defaultData;
-            }
-            finally
-            {
-                AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
-            }
-        }
-
-        private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
-        {
-            Assembly ayResult = null;
-            string sShortAssemblyName = args.Name.Split(',')[0];
-            Assembly[] ayAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-            foreach (Assembly ayAssembly in ayAssemblies)
-            {
-                if (sShortAssemblyName == ayAssembly.FullName.Split(',')[0])
-                {
-                    ayResult = ayAssembly;
-                    break;
-                }
-            }
-            return ayResult;
+            Logger.WoxInfo("Cache file not exist, load default data");
+            Save(defaultData);
+            return defaultData;
         }
 
         public void Save(T data)
         {
             using (var stream = new FileStream(FilePath, FileMode.Create))
             {
-                BinaryFormatter binaryFormatter = new BinaryFormatter
+                var binaryFormatter = new BinaryFormatter
                 {
                     AssemblyFormat = FormatterAssemblyStyle.Simple
                 };
@@ -116,5 +74,51 @@ namespace Wox.Infrastructure.Storage
                 }
             }
         }
+
+        #endregion
+
+        #region Private
+
+        private T Deserialize(FileStream stream, T defaultData)
+        {
+            //http://stackoverflow.com/questions/2120055/binaryformatter-deserialize-gives-serializationexception
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            var binaryFormatter = new BinaryFormatter
+            {
+                AssemblyFormat = FormatterAssemblyStyle.Simple
+            };
+
+            try
+            {
+                var t = ((T) binaryFormatter.Deserialize(stream)).NonNull();
+                return t;
+            }
+            catch (Exception e)
+            {
+                Logger.WoxError($"Deserialize error for file <{FilePath}>", e);
+                return defaultData;
+            }
+            finally
+            {
+                AppDomain.CurrentDomain.AssemblyResolve -= CurrentDomain_AssemblyResolve;
+            }
+        }
+
+        private Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            Assembly ayResult = null;
+            var sShortAssemblyName = args.Name.Split(',')[0];
+            var ayAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            foreach (var ayAssembly in ayAssemblies)
+                if (sShortAssemblyName == ayAssembly.FullName.Split(',')[0])
+                {
+                    ayResult = ayAssembly;
+                    break;
+                }
+
+            return ayResult;
+        }
+
+        #endregion
     }
 }

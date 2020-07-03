@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Wox.Infrastructure;
-
-namespace Wox.Plugin.BrowserBookmark.Commands
+﻿namespace Wox.Plugin.BrowserBookmark.Commands
 {
+    using Infrastructure;
+
     internal static class Bookmarks
     {
+        #region Internal
+
         internal static bool MatchProgram(Bookmark bookmark, string queryString)
         {
             if (StringMatcher.FuzzySearch(queryString, bookmark.Name).IsSearchPrecisionScoreMet()) return true;
@@ -15,5 +15,6 @@ namespace Wox.Plugin.BrowserBookmark.Commands
             return false;
         }
 
+        #endregion
     }
 }

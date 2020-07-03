@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Windows.Documents;
-
-namespace Wox.Plugin.Everything.Everything
+﻿namespace Wox.Plugin.Everything.Everything
 {
+    using System.Collections.Generic;
+
     public class SearchResult
     {
         public string FileName { get; set; }
-        public List<int> FileNameHightData { get; set; }
+        public List<int> FileNameHighlightData { get; set; }
         public string FullPath { get; set; }
-        public List<int> FullPathHightData { get; set; }
+        public List<int> FullPathHighlightData { get; set; }
         public ResultType Type { get; set; }
     }
 }

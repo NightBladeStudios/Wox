@@ -1,37 +1,44 @@
-using NLog;
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Runtime.Caching;
-using Wox.Infrastructure.Logger;
 using static Wox.Infrastructure.StringMatcher;
 
 namespace Wox.Infrastructure
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.Specialized;
+    using System.Runtime.Caching;
+    using NLog;
+
     public class StringMatcher
     {
+        public enum SearchPrecisionScore
+        {
+            Regular = 50,
+            Low = 20,
+            None = 0
+        }
 
         public SearchPrecisionScore UserSettingSearchPrecision { get; set; }
 
-        private readonly Alphabet _alphabet;
-        private MemoryCache _cache;
+        public static StringMatcher Instance { get; internal set; }
 
         private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+
+        private readonly Alphabet _alphabet;
+        private readonly MemoryCache _cache;
 
         public StringMatcher()
         {
             _alphabet = new Alphabet();
             _alphabet.Initialize();
 
-            NameValueCollection config = new NameValueCollection();
+            var config = new NameValueCollection();
             config.Add("pollingInterval", "00:05:00");
             config.Add("physicalMemoryLimitPercentage", "1");
             config.Add("cacheMemoryLimitMegabytes", "30");
             _cache = new MemoryCache("StringMatcherCache", config);
         }
 
-        public static StringMatcher Instance { get; internal set; }
+        #region Public
 
         public static MatchResult FuzzySearch(string query, string stringToCompare)
         {
@@ -43,16 +50,16 @@ namespace Wox.Infrastructure
             query = query.Trim();
             if (string.IsNullOrEmpty(stringToCompare) || string.IsNullOrEmpty(query)) return new MatchResult(false, UserSettingSearchPrecision);
             var queryWithoutCase = query.ToLower();
-            string translated = _alphabet.Translate(stringToCompare);
+            var translated = _alphabet.Translate(stringToCompare);
 
-            string key = $"{queryWithoutCase}|{translated}";
-            MatchResult match = _cache[key] as MatchResult;
+            var key = $"{queryWithoutCase}|{translated}";
+            var match = _cache[key] as MatchResult;
             if (match == null)
             {
-                match = FuzzyMatchRecurrsive(
+                match = FuzzyMatchRecursive(
                     queryWithoutCase, translated, 0, 0, new List<int>()
                 );
-                CacheItemPolicy policy = new CacheItemPolicy();
+                var policy = new CacheItemPolicy();
                 policy.SlidingExpiration = new TimeSpan(12, 0, 0);
                 _cache.Set(key, match, policy);
             }
@@ -60,36 +67,29 @@ namespace Wox.Infrastructure
             return match;
         }
 
-        public MatchResult FuzzyMatchRecurrsive(
+        public MatchResult FuzzyMatchRecursive(
             string query, string stringToCompare, int queryCurrentIndex, int stringCurrentIndex, List<int> sourceMatchData
         )
         {
-            if (queryCurrentIndex == query.Length || stringCurrentIndex == stringToCompare.Length)
-            {
-                return new MatchResult(false, UserSettingSearchPrecision);
-            }
+            if (queryCurrentIndex == query.Length || stringCurrentIndex == stringToCompare.Length) return new MatchResult(false, UserSettingSearchPrecision);
 
-            bool recursiveMatch = false;
-            List<int> bestRecursiveMatchData = new List<int>();
-            int bestRecursiveScore = 0;
+            var recursiveMatch = false;
+            var bestRecursiveMatchData = new List<int>();
+            var bestRecursiveScore = 0;
 
-            List<int> matchs = new List<int>();
+            var matches = new List<int>();
             if (sourceMatchData.Count > 0)
-            {
                 foreach (var data in sourceMatchData)
-                {
-                    matchs.Add(data);
-                }
-            }
+                    matches.Add(data);
 
             while (queryCurrentIndex < query.Length && stringCurrentIndex < stringToCompare.Length)
             {
-                char queryLower = char.ToLower(query[queryCurrentIndex]);
-                char stringToCompareLower = char.ToLower(stringToCompare[stringCurrentIndex]);
+                var queryLower = char.ToLower(query[queryCurrentIndex]);
+                var stringToCompareLower = char.ToLower(stringToCompare[stringCurrentIndex]);
                 if (queryLower == stringToCompareLower)
                 {
-                    MatchResult match = FuzzyMatchRecurrsive(
-                        query, stringToCompare, queryCurrentIndex, stringCurrentIndex + 1, matchs
+                    var match = FuzzyMatchRecursive(
+                        query, stringToCompare, queryCurrentIndex, stringCurrentIndex + 1, matches
                     );
 
                     if (match.Success)
@@ -97,76 +97,67 @@ namespace Wox.Infrastructure
                         if (!recursiveMatch || match.RawScore > bestRecursiveScore)
                         {
                             bestRecursiveMatchData = new List<int>();
-                            foreach (int data in match.MatchData)
-                            {
-                                bestRecursiveMatchData.Add(data);
-                            }
+                            foreach (var data in match.MatchData) bestRecursiveMatchData.Add(data);
                             bestRecursiveScore = match.Score;
                         }
+
                         recursiveMatch = true;
                     }
 
-                    matchs.Add(stringCurrentIndex);
+                    matches.Add(stringCurrentIndex);
                     queryCurrentIndex += 1;
                 }
+
                 stringCurrentIndex += 1;
             }
 
-            bool matched = queryCurrentIndex == query.Length;
+            var matched = queryCurrentIndex == query.Length;
             int outScore;
             if (matched)
             {
                 outScore = 100;
-                int penality = 3 * matchs[0];
-                outScore = outScore - penality;
+                var penalty = 3 * matches[0];
+                outScore = outScore - penalty;
 
-                int unmatched = stringToCompare.Length - matchs.Count;
-                outScore = outScore - (5 * unmatched);
+                var unmatched = stringToCompare.Length - matches.Count;
+                outScore = outScore - 5 * unmatched;
 
-                int consecutiveMatch = 0;
-                for (int i = 0; i < matchs.Count; i++)
+                var consecutiveMatch = 0;
+                for (var i = 0; i < matches.Count; i++)
                 {
-                    int indexCurent = matchs[i];
+                    var currentIndex = matches[i];
                     if (i > 0)
                     {
-                        int indexPrevious = matchs[i - 1];
-                        if (indexCurent == indexPrevious + 1)
+                        var indexPrevious = matches[i - 1];
+                        if (currentIndex == indexPrevious + 1)
                         {
                             consecutiveMatch += 1;
                             outScore += 10 * consecutiveMatch;
-                        } else
+                        }
+                        else
                         {
                             consecutiveMatch = 0;
                         }
                     }
 
-                    char current = stringToCompare[indexCurent];
-                    bool currentUpper = char.IsUpper(current);
-                    if (indexCurent > 0)
+                    var current = stringToCompare[currentIndex];
+                    var currentUpper = char.IsUpper(current);
+                    if (currentIndex > 0)
                     {
-                        char neighbor = stringToCompare[indexCurent - 1];
-                        if (currentUpper && char.IsLower(neighbor))
-                        {
-                            outScore += 30;
-                        }
+                        var neighbor = stringToCompare[currentIndex - 1];
+                        if (currentUpper && char.IsLower(neighbor)) outScore += 30;
 
-                        bool isNeighbourSeparator = neighbor == '_' || neighbor == ' ';
-                        if (isNeighbourSeparator)
+                        var isNeighborSeparator = neighbor == '_' || neighbor == ' ';
+                        if (isNeighborSeparator)
                         {
                             outScore += 50;
-                            if (currentUpper)
-                            {
-                                outScore += 50;
-                            }
+                            if (currentUpper) outScore += 50;
                         }
                     }
                     else
                     {
                         outScore += 50;
-                        if (currentUpper)
-                        {
-                            outScore += 50;
-                        }
+                        if (currentUpper) outScore += 50;
                     }
                 }
             }
@@ -177,48 +168,22 @@ namespace Wox.Infrastructure
 
             if (recursiveMatch && (!matched || bestRecursiveScore > outScore))
             {
-                matchs = new List<int>();
-                foreach (int data in bestRecursiveMatchData)
-                {
-                    matchs.Add(data);
-                }
+                matches = new List<int>();
+                foreach (var data in bestRecursiveMatchData) matches.Add(data);
                 outScore = bestRecursiveScore;
-                return new MatchResult(true, UserSettingSearchPrecision, matchs, outScore);
+                return new MatchResult(true, UserSettingSearchPrecision, matches, outScore);
             }
-            else if (matched)
-            {
-                return new MatchResult(true, UserSettingSearchPrecision, matchs, outScore);
-            }
-            else
-            {
-                return new MatchResult(false, UserSettingSearchPrecision);
-            }
+
+            if (matched)
+                return new MatchResult(true, UserSettingSearchPrecision, matches, outScore);
+            return new MatchResult(false, UserSettingSearchPrecision);
         }
 
-        public enum SearchPrecisionScore
-        {
-            Regular = 50,
-            Low = 20,
-            None = 0
-        }
+        #endregion
     }
 
     public class MatchResult
     {
-        public MatchResult(bool success, SearchPrecisionScore searchPrecision)
-        {
-            Success = success;
-            SearchPrecision = searchPrecision;
-        }
-
-        public MatchResult(bool success, SearchPrecisionScore searchPrecision, List<int> matchData, int rawScore)
-        {
-            Success = success;
-            SearchPrecision = searchPrecision;
-            MatchData = matchData;
-            RawScore = rawScore;
-        }
-
         public bool Success { get; set; }
 
         /// <summary>
@@ -226,14 +191,9 @@ namespace Wox.Infrastructure
         /// </summary>
         public int Score { get; private set; }
 
-        /// <summary>
-        /// The raw calculated search score without any search precision filtering applied.
-        /// </summary>
-        private int _rawScore;
-
         public int RawScore
         {
-            get { return _rawScore; }
+            get => _rawScore;
             set
             {
                 _rawScore = value;
@@ -248,20 +208,46 @@ namespace Wox.Infrastructure
 
         public SearchPrecisionScore SearchPrecision { get; set; }
 
+        /// <summary>
+        /// The raw calculated search score without any search precision filtering applied.
+        /// </summary>
+        private int _rawScore;
+
+        public MatchResult(bool success, SearchPrecisionScore searchPrecision)
+        {
+            Success = success;
+            SearchPrecision = searchPrecision;
+        }
+
+        public MatchResult(bool success, SearchPrecisionScore searchPrecision, List<int> matchData, int rawScore)
+        {
+            Success = success;
+            SearchPrecision = searchPrecision;
+            MatchData = matchData;
+            RawScore = rawScore;
+        }
+
+        #region Public
+
         public bool IsSearchPrecisionScoreMet()
         {
             return IsSearchPrecisionScoreMet(_rawScore);
         }
 
+        #endregion
+
+        #region Private
+
         private bool IsSearchPrecisionScoreMet(int rawScore)
         {
-            return rawScore >= (int)SearchPrecision;
+            return rawScore >= (int) SearchPrecision;
         }
 
         private int ScoreAfterSearchPrecisionFilter(int rawScore)
         {
             return IsSearchPrecisionScoreMet(rawScore) ? rawScore : 0;
         }
-    }
 
+        #endregion
+    }
 }

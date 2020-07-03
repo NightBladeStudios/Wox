@@ -1,20 +1,19 @@
-using System;
-using System.IO;
-using System.Windows;
-using System.Windows.Forms;
-using System.Windows.Input;
-using System.Windows.Media.Animation;
-using System.Windows.Media.Imaging;
-using Wox.Helper;
-using Wox.Infrastructure;
-using Wox.Image;
-
 namespace Wox
 {
+    using System;
+    using System.IO;
+    using System.Windows;
+    using System.Windows.Forms;
+    using System.Windows.Input;
+    using System.Windows.Media.Animation;
+    using Helper;
+    using Image;
+    using Infrastructure;
+
     public partial class Msg : Window
     {
-        Storyboard fadeOutStoryboard = new Storyboard();
         private bool closing;
+        private readonly Storyboard fadeOutStoryboard = new Storyboard();
 
         public Msg()
         {
@@ -30,7 +29,7 @@ namespace Wox
 
             // Create the fade out storyboard
             fadeOutStoryboard.Completed += fadeOutStoryboard_Completed;
-            DoubleAnimation fadeOutAnimation = new DoubleAnimation(dipWorkingArea.Y - Height, dipWorkingArea.Y, new Duration(TimeSpan.FromSeconds(5)))
+            var fadeOutAnimation = new DoubleAnimation(dipWorkingArea.Y - Height, dipWorkingArea.Y, new Duration(TimeSpan.FromSeconds(5)))
             {
                 AccelerationRatio = 0.2
             };
@@ -38,11 +37,39 @@ namespace Wox
             Storyboard.SetTargetProperty(fadeOutAnimation, new PropertyPath(TopProperty));
             fadeOutStoryboard.Children.Add(fadeOutAnimation);
 
-            imgClose.Source = ImageLoader.Load(Path.Combine(Infrastructure.Constant.ProgramDirectory, "Images\\close.png"));
+            imgClose.Source = ImageLoader.Load(Path.Combine(Constant.ProgramDirectory, "Images\\close.png"));
             imgClose.MouseUp += imgClose_MouseUp;
         }
 
-        void imgClose_MouseUp(object sender, MouseButtonEventArgs e)
+        #region Public
+
+        public void Show(string title, string subTitle, string iconPath)
+        {
+            tbTitle.Text = title;
+            tbSubTitle.Text = subTitle;
+            if (string.IsNullOrEmpty(subTitle)) tbSubTitle.Visibility = Visibility.Collapsed;
+            if (!File.Exists(iconPath))
+                imgIco.Source = ImageLoader.Load(Path.Combine(Constant.ProgramDirectory, "Images\\app.png"));
+            else
+                imgIco.Source = ImageLoader.Load(iconPath);
+
+            Show();
+
+            Dispatcher.InvokeAsync(async () =>
+            {
+                if (!closing)
+                {
+                    closing = true;
+                    await Dispatcher.InvokeAsync(fadeOutStoryboard.Begin);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Private
+
+        private void imgClose_MouseUp(object sender, MouseButtonEventArgs e)
         {
             if (!closing)
             {
@@ -56,32 +83,6 @@ namespace Wox
             Close();
         }
 
-        public void Show(string title, string subTitle, string iconPath)
-        {
-            tbTitle.Text = title;
-            tbSubTitle.Text = subTitle;
-            if (string.IsNullOrEmpty(subTitle))
-            {
-                tbSubTitle.Visibility = Visibility.Collapsed;
-            }
-            if (!File.Exists(iconPath))
-            {
-                imgIco.Source = ImageLoader.Load(Path.Combine(Infrastructure.Constant.ProgramDirectory, "Images\\app.png"));
-            }
-            else {
-                imgIco.Source = ImageLoader.Load(iconPath);
-            }
-
-            Show();
-
-            Dispatcher.InvokeAsync(async () =>
-                                   {
-                                       if (!closing)
-                                       {
-                                           closing = true;
-                                           await Dispatcher.InvokeAsync(fadeOutStoryboard.Begin);
-                                       }
-                                   });
-        }
+        #endregion
     }
 }

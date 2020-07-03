@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_plugin_management_plugin_name">מנהל תוספי Wox</system:String>
     <system:String x:Key="wox_plugin_plugin_management_plugin_description">התקנה, הסרה או עדכון של תוספי Wox</system:String>
-    
+
 </ResourceDictionary>

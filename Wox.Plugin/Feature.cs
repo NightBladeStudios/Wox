@@ -1,14 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
-    public interface IFeatures { }
+    using System;
+    using System.Collections.Generic;
+
+    public interface IFeatures
+    {
+    }
 
     public interface IContextMenu : IFeatures
     {
+        #region Public
+
         List<Result> LoadContextMenus(Result selectedResult);
+
+        #endregion
     }
 
     [Obsolete("If a plugin has a action keyword, then it is exclusive. This interface will be remove in v1.4.0")]
@@ -19,13 +24,18 @@ namespace Wox.Plugin
     }
 
     /// <summary>
-    /// Represent plugin query will be executed in UI thread directly. Don't do long-running operation in Query method if you implement this interface
+    /// Represent plugin query will be executed in UI thread directly. Don't do long-running operation in Query method if you
+    /// implement this interface
     /// <remarks>This will improve the performance of instant search like websearch or cmd plugin</remarks>
     /// </summary>
     [Obsolete("Wox is fast enough now, executed on ui thread is no longer needed")]
     public interface IInstantQuery : IFeatures
     {
+        #region Public
+
         bool IsInstantQuery(string query);
+
+        #endregion
     }
 
     /// <summary>
@@ -33,9 +43,13 @@ namespace Wox.Plugin
     /// </summary>
     public interface IPluginI18n : IFeatures
     {
+        #region Public
+
         string GetTranslatedPluginTitle();
 
         string GetTranslatedPluginDescription();
+
+        #endregion
     }
 
     public interface IResultUpdated : IFeatures
@@ -47,7 +61,7 @@ namespace Wox.Plugin
 
     public class ResultUpdatedEventArgs : EventArgs
     {
-        public List<Result> Results;
         public Query Query;
+        public List<Result> Results;
     }
 }

@@ -1,21 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using NLog;
-using Wox.Infrastructure.Http;
-using Wox.Infrastructure.Logger;
-
-namespace Wox.Plugin.WebSearch.SuggestionSources
+﻿namespace Wox.Plugin.WebSearch.SuggestionSources
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Text.RegularExpressions;
+    using System.Threading.Tasks;
+    using Infrastructure.Http;
+    using Infrastructure.Logger;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using NLog;
+
     public class Baidu : SuggestionSource
     {
-        private readonly Regex _reg = new Regex("window.baidu.sug\\((.*)\\)");
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly Regex _reg = new Regex("window.baidu.sug\\((.*)\\)");
+
+        #region Public
+
         public override async Task<List<string>> Suggestions(string query)
         {
             string result;
@@ -32,7 +35,7 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
             }
 
             if (string.IsNullOrEmpty(result)) return new List<string>();
-            Match match = _reg.Match(result);
+            var match = _reg.Match(result);
             if (match.Success)
             {
                 JContainer json;
@@ -49,10 +52,7 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
                 if (json != null)
                 {
                     var results = json["s"] as JArray;
-                    if (results != null)
-                    {
-                        return results.OfType<JValue>().Select(o => o.Value).OfType<string>().ToList();
-                    }
+                    if (results != null) return results.OfType<JValue>().Select(o => o.Value).OfType<string>().ToList();
                 }
             }
 
@@ -63,5 +63,7 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
         {
             return "Baidu";
         }
+
+        #endregion
     }
 }

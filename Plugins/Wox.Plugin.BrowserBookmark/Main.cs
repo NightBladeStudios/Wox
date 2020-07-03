@@ -1,24 +1,23 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Windows.Controls;
-using Wox.Infrastructure.Storage;
-using Wox.Plugin.BrowserBookmark.Commands;
-using Wox.Plugin.BrowserBookmark.Models;
-using Wox.Plugin.BrowserBookmark.Views;
-using Wox.Infrastructure;
-using System.Threading.Tasks;
-
-namespace Wox.Plugin.BrowserBookmark
+﻿namespace Wox.Plugin.BrowserBookmark
 {
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using System.Windows.Controls;
+    using Commands;
+    using Infrastructure;
+    using Infrastructure.Storage;
+    using Models;
+    using Views;
+
     public class Main : ISettingProvider, IPlugin, IReloadable, IPluginI18n, ISavable
     {
-        private PluginInitContext context;
-
-        private List<Bookmark> cachedBookmarks = new List<Bookmark>();
-        private object _updateLock = new object();
-
         private readonly Settings _settings;
         private readonly PluginJsonStorage<Settings> _storage;
+        private readonly object _updateLock = new object();
+
+        private List<Bookmark> cachedBookmarks = new List<Bookmark>();
+        private PluginInitContext context;
 
 
         public Main()
@@ -32,6 +31,7 @@ namespace Wox.Plugin.BrowserBookmark
             {
                 cachedBookmarks = chromeBookmarks;
             }
+
             Task.Run(() =>
             {
                 // firefox bookmarks is slow, since it nened open sqlite connection.
@@ -43,8 +43,9 @@ namespace Wox.Plugin.BrowserBookmark
                     cachedBookmarks = cached;
                 }
             });
-
         }
+
+        #region Public
 
         public void Init(PluginInitContext context)
         {
@@ -53,14 +54,13 @@ namespace Wox.Plugin.BrowserBookmark
 
         public List<Result> Query(Query query)
         {
-            string param = query.Search.TrimStart();
+            var param = query.Search.TrimStart();
 
             // Should top results be returned? (true if no search parameters have been passed)
             var topResults = string.IsNullOrEmpty(param);
 
             lock (_updateLock)
             {
-
                 var returnList = cachedBookmarks;
 
                 if (!topResults)
@@ -70,30 +70,25 @@ namespace Wox.Plugin.BrowserBookmark
                     returnList = returnList.OrderByDescending(o => o.Score).ToList();
                 }
 
-                var results = returnList.Select(c => new Result()
+                var results = returnList.Select(c => new Result
                 {
                     Title = c.Name,
                     SubTitle = c.Url,
                     PluginDirectory = context.CurrentPluginMetadata.PluginDirectory,
                     IcoPath = @"Images\bookmark.png",
                     Score = 5,
-                    Action = (e) =>
+                    Action = e =>
                     {
                         if (_settings.OpenInNewBrowserWindow)
-                        {
                             c.Url.NewBrowserWindow(_settings.BrowserPath);
-                        }
                         else
-                        {
                             c.Url.NewTabInBrowser(_settings.BrowserPath);
-                        }
 
                         return true;
                     }
                 }).ToList();
                 return results;
             }
-
         }
 
         public void ReloadData()
@@ -130,5 +125,7 @@ namespace Wox.Plugin.BrowserBookmark
         {
             _storage.Save();
         }
+
+        #endregion
     }
 }

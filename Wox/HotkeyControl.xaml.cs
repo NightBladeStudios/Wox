@@ -1,64 +1,29 @@
-﻿using System;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using NHotkey.Wpf;
-using Wox.Core.Resource;
-using Wox.Infrastructure.Hotkey;
-using Wox.Plugin;
-
-namespace Wox
+﻿namespace Wox
 {
+    using System;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Input;
+    using System.Windows.Media;
+    using Core.Resource;
+    using Infrastructure.Hotkey;
+    using NHotkey.Wpf;
+
     public partial class HotkeyControl : UserControl
     {
+        public event EventHandler HotkeyChanged;
         public HotkeyModel CurrentHotkey { get; private set; }
         public bool CurrentHotkeyAvailable { get; private set; }
 
-        public event EventHandler HotkeyChanged;
-
-        protected virtual void OnHotkeyChanged()
-        {
-            EventHandler handler = HotkeyChanged;
-            if (handler != null) handler(this, EventArgs.Empty);
-        }
+        public new bool IsFocused => tbHotkey.IsFocused;
 
         public HotkeyControl()
         {
             InitializeComponent();
         }
 
-        void TbHotkey_OnPreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            e.Handled = true;
-            tbMsg.Visibility = Visibility.Hidden;
-
-            //when alt is pressed, the real key should be e.SystemKey
-            Key key = (e.Key == Key.System ? e.SystemKey : e.Key);
-
-            SpecialKeyState specialKeyState = GlobalHotkey.Instance.CheckModifiers();
-
-            var hotkeyModel = new HotkeyModel(
-                specialKeyState.AltPressed,
-                specialKeyState.ShiftPressed,
-                specialKeyState.WinPressed,
-                specialKeyState.CtrlPressed,
-                key);
-
-            var hotkeyString = hotkeyModel.ToString();
-
-            if (hotkeyString == tbHotkey.Text)
-            {
-                return;
-            }
-
-            Dispatcher.InvokeAsync(async () =>
-            {
-                await Task.Delay(500);
-                SetHotkey(hotkeyModel);
-            });
-        }
+        #region Public
 
         public void SetHotkey(HotkeyModel keyModel, bool triggerValidate = true)
         {
@@ -80,6 +45,7 @@ namespace Wox
                     tbMsg.Foreground = new SolidColorBrush(Colors.Green);
                     tbMsg.Text = InternationalizationManager.Instance.GetTranslation("success");
                 }
+
                 tbMsg.Visibility = Visibility.Visible;
                 OnHotkeyChanged();
             }
@@ -88,6 +54,48 @@ namespace Wox
         public void SetHotkey(string keyStr, bool triggerValidate = true)
         {
             SetHotkey(new HotkeyModel(keyStr), triggerValidate);
+        }
+
+        #endregion
+
+        #region Protected
+
+        protected virtual void OnHotkeyChanged()
+        {
+            var handler = HotkeyChanged;
+            if (handler != null) handler(this, EventArgs.Empty);
+        }
+
+        #endregion
+
+        #region Private
+
+        private void TbHotkey_OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            e.Handled = true;
+            tbMsg.Visibility = Visibility.Hidden;
+
+            //when alt is pressed, the real key should be e.SystemKey
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+
+            var specialKeyState = GlobalHotkey.Instance.CheckModifiers();
+
+            var hotkeyModel = new HotkeyModel(
+                specialKeyState.AltPressed,
+                specialKeyState.ShiftPressed,
+                specialKeyState.WinPressed,
+                specialKeyState.CtrlPressed,
+                key);
+
+            var hotkeyString = hotkeyModel.ToString();
+
+            if (hotkeyString == tbHotkey.Text) return;
+
+            Dispatcher.InvokeAsync(async () =>
+            {
+                await Task.Delay(500);
+                SetHotkey(hotkeyModel);
+            });
         }
 
         private bool CheckHotkeyAvailability()
@@ -109,9 +117,6 @@ namespace Wox
             return false;
         }
 
-        public new bool IsFocused
-        {
-            get { return tbHotkey.IsFocused; }
-        }
+        #endregion
     }
 }

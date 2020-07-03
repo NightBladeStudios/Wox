@@ -1,25 +1,21 @@
-﻿using System;
-using System.Windows.Markup;
-
-namespace Wox.Infrastructure.UI
+﻿namespace Wox.Infrastructure.UI
 {
+    using System;
+    using System.Windows.Markup;
+
     public class EnumBindingSourceExtension : MarkupExtension
     {
-        private Type _enumType;
         public Type EnumType
         {
-            get { return _enumType; }
+            get => _enumType;
             set
             {
                 if (value != _enumType)
                 {
                     if (value != null)
                     {
-                        Type enumType = Nullable.GetUnderlyingType(value) ?? value;
-                        if (!enumType.IsEnum)
-                        {
-                            throw new ArgumentException("Type must represent an enum.");
-                        }
+                        var enumType = Nullable.GetUnderlyingType(value) ?? value;
+                        if (!enumType.IsEnum) throw new ArgumentException("Type must represent an enum.");
                     }
 
                     _enumType = value;
@@ -27,31 +23,33 @@ namespace Wox.Infrastructure.UI
             }
         }
 
-        public EnumBindingSourceExtension() { }
+        private Type _enumType;
+
+        public EnumBindingSourceExtension()
+        {
+        }
 
         public EnumBindingSourceExtension(Type enumType)
         {
             EnumType = enumType;
         }
 
+        #region Public
+
         public override object ProvideValue(IServiceProvider serviceProvider)
         {
-            if (_enumType == null)
-            { 
-                throw new InvalidOperationException("The EnumType must be specified.");
-            }
+            if (_enumType == null) throw new InvalidOperationException("The EnumType must be specified.");
 
-            Type actualEnumType = Nullable.GetUnderlyingType(_enumType) ?? _enumType;
-            Array enumValues = Enum.GetValues(actualEnumType);
+            var actualEnumType = Nullable.GetUnderlyingType(_enumType) ?? _enumType;
+            var enumValues = Enum.GetValues(actualEnumType);
 
-            if (actualEnumType == _enumType)
-            {
-                return enumValues;
-            }
+            if (actualEnumType == _enumType) return enumValues;
 
-            Array tempArray = Array.CreateInstance(actualEnumType, enumValues.Length + 1);
+            var tempArray = Array.CreateInstance(actualEnumType, enumValues.Length + 1);
             enumValues.CopyTo(tempArray, 1);
             return tempArray;
         }
+
+        #endregion
     }
 }

@@ -1,19 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using NLog;
-using Wox.Infrastructure.Http;
-using Wox.Infrastructure.Logger;
-
-namespace Wox.Plugin.WebSearch.SuggestionSources
+﻿namespace Wox.Plugin.WebSearch.SuggestionSources
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
+    using Infrastructure.Http;
+    using Infrastructure.Logger;
+    using Newtonsoft.Json;
+    using Newtonsoft.Json.Linq;
+    using NLog;
+
     public class Google : SuggestionSource
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        #region Public
 
         public override async Task<List<string>> Suggestions(string query)
         {
@@ -29,6 +31,7 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
                 return new List<string>();
                 ;
             }
+
             if (string.IsNullOrEmpty(result)) return new List<string>();
             JContainer json;
             try
@@ -40,14 +43,13 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
                 Logger.WoxError("can't parse suggestions", e);
                 return new List<string>();
             }
+
             if (json != null)
             {
                 var results = json[1] as JContainer;
-                if (results != null)
-                {
-                    return results.OfType<JValue>().Select(o => o.Value).OfType<string>().ToList();
-                }
+                if (results != null) return results.OfType<JValue>().Select(o => o.Value).OfType<string>().ToList();
             }
+
             return new List<string>();
         }
 
@@ -55,5 +57,7 @@ namespace Wox.Plugin.WebSearch.SuggestionSources
         {
             return "Google";
         }
+
+        #endregion
     }
 }

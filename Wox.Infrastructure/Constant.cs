@@ -1,18 +1,16 @@
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using JetBrains.Annotations;
-
 namespace Wox.Infrastructure
 {
+    using System.Diagnostics;
+    using System.IO;
+    using System.Reflection;
+
     public static class Constant
     {
         public const string Wox = "Wox";
-        public static readonly string WoxExecutable = $"{Wox}.exe";
         public const string Plugins = "Plugins";
-
-        private static Assembly Assembly = Assembly.GetExecutingAssembly();
+        public const string Issue = "https://github.com/Wox-launcher/Wox/issues/new";
+        public static readonly string WoxExecutable = $"{Wox}.exe";
+        private static readonly Assembly Assembly = Assembly.GetExecutingAssembly();
         public static string ExecutablePath = Path.Combine(Path.GetDirectoryName(Assembly.Location), WoxExecutable);
         public static string Version = FileVersionInfo.GetVersionInfo(ExecutablePath).ProductVersion;
 
@@ -21,7 +19,6 @@ namespace Wox.Infrastructure
         public static string RootDirectory = Directory.GetParent(ApplicationDirectory).ToString();
 
         public static string PreinstalledDirectory = Path.Combine(ProgramDirectory, Plugins);
-        public const string Issue = "https://github.com/Wox-launcher/Wox/issues/new";
 
         public static readonly int ThumbnailSize = 64;
         public static string ImagesDirectory = Path.Combine(ProgramDirectory, "Images");

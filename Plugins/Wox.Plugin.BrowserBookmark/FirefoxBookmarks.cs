@@ -1,62 +1,16 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-
-using Microsoft.Data.Sqlite;
-using NLog;
-
-using Wox.Infrastructure.Logger;
-
 namespace Wox.Plugin.BrowserBookmark
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using Infrastructure.Logger;
+    using Microsoft.Data.Sqlite;
+    using NLog;
+
     public class FirefoxBookmarks
     {
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
-
-        /// <summary>
-        /// Searches the places.sqlite db and returns all bookmarks
-        /// </summary>
-        public List<Bookmark> GetBookmarks()
-        {
-            // Return empty list if the places.sqlite file cannot be found
-            if (string.IsNullOrEmpty(PlacesPath) || !File.Exists(PlacesPath))
-                return new List<Bookmark>();
-            Logger.WoxDebug($"Firefox db path {PlacesPath}");
-
-            var bookmarList = new List<Bookmark>();
-
-            // create the connection string and init the connection
-
-            string dbPath = $"Data Source={PlacesPath}";
-            using (var dbConnection = new SqliteConnection(dbPath))
-            {
-                // Open connection to the database file and execute the query
-                dbConnection.Open();
-                SqliteCommand command = dbConnection.CreateCommand();
-                command.CommandText = @"SELECT moz_places.url, moz_bookmarks.title
-                        FROM moz_places
-                        INNER JOIN moz_bookmarks ON (
-                            moz_bookmarks.fk NOT NULL AND moz_bookmarks.fk = moz_places.id
-                        )";
-                using (SqliteDataReader reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        string url = reader.GetString(0) ?? string.Empty;
-                        string title = reader.GetString(1) ?? string.Empty;
-                        Logger.WoxTrace($"Firefox bookmark: <{title}> <{url}>");
-                        bookmarList.Add(new Bookmark()
-                        {
-                            Name = title,
-                            Url = url,
-                        });
-                    }
-                }
-            }
-
-            return bookmarList;
-        }
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         /// <summary>
         /// Path to places.sqlite
@@ -106,7 +60,7 @@ namespace Wox.Plugin.BrowserBookmark
                     Version=2
                 */
 
-                var lines = ini.Split(new string[] { "\r\n" }, StringSplitOptions.None).ToList();
+                var lines = ini.Split(new[] {"\r\n"}, StringSplitOptions.None).ToList();
 
                 var defaultProfileFolderNameRaw = lines.Where(x => x.Contains("Default=") && x != "Default=1").FirstOrDefault() ?? string.Empty;
 
@@ -115,16 +69,63 @@ namespace Wox.Plugin.BrowserBookmark
 
                 var defaultProfileFolderName = defaultProfileFolderNameRaw.Split('=').Last();
 
-                var indexOfDefaultProfileAtttributePath = lines.IndexOf("Path=" + defaultProfileFolderName);
+                var indexOfDefaultProfileAttributePath = lines.IndexOf("Path=" + defaultProfileFolderName);
 
                 // Seen in the example above, the IsRelative attribute is always above the Path attribute
-                var relativeAttribute = lines[indexOfDefaultProfileAtttributePath - 1];
+                var relativeAttribute = lines[indexOfDefaultProfileAttributePath - 1];
 
                 return relativeAttribute == "0" // See above, the profile is located in a custom location, path is not relative, so IsRelative=0
-                        ? defaultProfileFolderName + @"\places.sqlite"
-                        : Path.Combine(profileFolderPath, defaultProfileFolderName) + @"\places.sqlite";
+                    ? defaultProfileFolderName + @"\places.sqlite"
+                    : Path.Combine(profileFolderPath, defaultProfileFolderName) + @"\places.sqlite";
             }
         }
-    }
 
+        #region Public
+
+        /// <summary>
+        /// Searches the places.sqlite db and returns all bookmarks
+        /// </summary>
+        public List<Bookmark> GetBookmarks()
+        {
+            // Return empty list if the places.sqlite file cannot be found
+            if (string.IsNullOrEmpty(PlacesPath) || !File.Exists(PlacesPath))
+                return new List<Bookmark>();
+            Logger.WoxDebug($"Firefox db path {PlacesPath}");
+
+            var bookmarks = new List<Bookmark>();
+
+            // create the connection string and init the connection
+
+            var dbPath = $"Data Source={PlacesPath}";
+            using (var dbConnection = new SqliteConnection(dbPath))
+            {
+                // Open connection to the database file and execute the query
+                dbConnection.Open();
+                var command = dbConnection.CreateCommand();
+                command.CommandText = @"SELECT moz_places.url, moz_bookmarks.title
+                        FROM moz_places
+                        INNER JOIN moz_bookmarks ON (
+                            moz_bookmarks.fk NOT NULL AND moz_bookmarks.fk = moz_places.id
+                        )";
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var url = reader.GetString(0) ?? string.Empty;
+                        var title = reader.GetString(1) ?? string.Empty;
+                        Logger.WoxTrace($"Firefox bookmark: <{title}> <{url}>");
+                        bookmarks.Add(new Bookmark
+                        {
+                            Name = title,
+                            Url = url
+                        });
+                    }
+                }
+            }
+
+            return bookmarks;
+        }
+
+        #endregion
+    }
 }

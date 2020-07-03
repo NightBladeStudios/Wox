@@ -1,41 +1,43 @@
-using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using WindowsInput;
-using WindowsInput.Native;
-using NLog;
-using Wox.Infrastructure.Hotkey;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.Storage;
-using Wox.Infrastructure;
-using Application = System.Windows.Application;
-using Control = System.Windows.Controls.Control;
-using Keys = System.Windows.Forms.Keys;
-
 namespace Wox.Plugin.Shell
 {
+    using System;
+    using System.Collections.Generic;
+    using System.ComponentModel;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using System.Windows.Forms;
+    using WindowsInput;
+    using WindowsInput.Native;
+    using Infrastructure;
+    using Infrastructure.Hotkey;
+    using Infrastructure.Logger;
+    using Infrastructure.Storage;
+    using NLog;
+    using Application = System.Windows.Application;
+    using Control = System.Windows.Controls.Control;
+
     public class Main : IPlugin, ISettingProvider, IPluginI18n, IContextMenu, ISavable
     {
         private const string Image = "Images/shell.png";
-        private PluginInitContext _context;
-        private bool _winRStroked;
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private readonly KeyboardSimulator _keyboardSimulator = new KeyboardSimulator(new InputSimulator());
 
         private readonly Settings _settings;
         private readonly PluginJsonStorage<Settings> _storage;
-        
-        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private PluginInitContext _context;
+        private bool _winRStroked;
 
         public Main()
         {
             _storage = new PluginJsonStorage<Settings>();
             _settings = _storage.Load();
         }
+
+        #region Public
 
         public void Save()
         {
@@ -45,67 +47,115 @@ namespace Wox.Plugin.Shell
 
         public List<Result> Query(Query query)
         {
-            List<Result> results = new List<Result>();
-            string cmd = query.Search;
-            if (string.IsNullOrEmpty(cmd))
-            {
-                return ResultsFromlHistory();
-            }
-            else
-            {
-                var queryCmd = GetCurrentCmd(cmd);
-                results.Add(queryCmd);
-                var history = GetHistoryCmds(cmd, queryCmd);
-                results.AddRange(history);
+            var results = new List<Result>();
+            var cmd = query.Search;
+            if (string.IsNullOrEmpty(cmd)) return ResultsFromHistory();
 
-                try
+            var queryCmd = GetCurrentCmd(cmd);
+            results.Add(queryCmd);
+            var history = GetHistoryCmds(cmd, queryCmd);
+            results.AddRange(history);
+
+            try
+            {
+                string basedir = null;
+                string dir = null;
+                var excmd = Environment.ExpandEnvironmentVariables(cmd);
+                if (Directory.Exists(excmd) && (cmd.EndsWith("/") || cmd.EndsWith(@"\")))
                 {
-                    string basedir = null;
-                    string dir = null;
-                    string excmd = Environment.ExpandEnvironmentVariables(cmd);
-                    if (Directory.Exists(excmd) && (cmd.EndsWith("/") || cmd.EndsWith(@"\")))
-                    {
-                        basedir = excmd;
-                        dir = cmd;
-                    }
-                    else if (Directory.Exists(Path.GetDirectoryName(excmd) ?? string.Empty))
-                    {
-                        basedir = Path.GetDirectoryName(excmd);
-                        var dirn = Path.GetDirectoryName(cmd);
-                        dir = (dirn.EndsWith("/") || dirn.EndsWith(@"\")) ? dirn : cmd.Substring(0, dirn.Length + 1);
-                    }
+                    basedir = excmd;
+                    dir = cmd;
+                }
+                else if (Directory.Exists(Path.GetDirectoryName(excmd) ?? string.Empty))
+                {
+                    basedir = Path.GetDirectoryName(excmd);
+                    var directoryName = Path.GetDirectoryName(cmd);
+                    dir = directoryName.EndsWith("/") || directoryName.EndsWith(@"\") ? directoryName : cmd.Substring(0, directoryName.Length + 1);
+                }
 
-                    if (basedir != null)
+                if (basedir != null)
+                {
+                    var autocomplete = Directory.GetFileSystemEntries(basedir).Select(o => dir + Path.GetFileName(o)).Where(o => o.StartsWith(cmd, StringComparison.OrdinalIgnoreCase) &&
+                                                                                                                                 !results.Any(p => o.Equals(p.Title, StringComparison.OrdinalIgnoreCase)) &&
+                                                                                                                                 !results.Any(p => o.Equals(p.Title, StringComparison.OrdinalIgnoreCase))).ToList();
+                    autocomplete.Sort();
+                    results.AddRange(autocomplete.ConvertAll(m => new Result
                     {
-                        var autocomplete = Directory.GetFileSystemEntries(basedir).
-                            Select(o => dir + Path.GetFileName(o)).
-                            Where(o => o.StartsWith(cmd, StringComparison.OrdinalIgnoreCase) &&
-                                       !results.Any(p => o.Equals(p.Title, StringComparison.OrdinalIgnoreCase)) &&
-                                       !results.Any(p => o.Equals(p.Title, StringComparison.OrdinalIgnoreCase))).ToList();
-                        autocomplete.Sort();
-                        results.AddRange(autocomplete.ConvertAll(m => new Result
+                        Title = m,
+                        IcoPath = Image,
+                        Action = c =>
                         {
-                            Title = m,
-                            IcoPath = Image,
-                            Action = c =>
-                            {
-                                Execute(Process.Start, PrepareProcessStartInfo(m));
-                                return true;
-                            }
-                        }));
-                    }
+                            Execute(Process.Start, PrepareProcessStartInfo(m));
+                            return true;
+                        }
+                    }));
                 }
-                catch (Exception e)
-                {
-                    Logger.WoxError($"Exception when query for <{query}>", e);
-                }
-                return results;
             }
+            catch (Exception e)
+            {
+                Logger.WoxError($"Exception when query for <{query}>", e);
+            }
+
+            return results;
         }
+
+        public void Init(PluginInitContext context)
+        {
+            _context = context;
+            context.API.GlobalKeyboardEvent += API_GlobalKeyboardEvent;
+        }
+
+        public Control CreateSettingPanel()
+        {
+            return new CMDSetting(_settings);
+        }
+
+        public string GetTranslatedPluginTitle()
+        {
+            return _context.API.GetTranslation("wox_plugin_cmd_plugin_name");
+        }
+
+        public string GetTranslatedPluginDescription()
+        {
+            return _context.API.GetTranslation("wox_plugin_cmd_plugin_description");
+        }
+
+        public List<Result> LoadContextMenus(Result selectedResult)
+        {
+            var results = new List<Result>
+            {
+                new Result
+                {
+                    Title = _context.API.GetTranslation("wox_plugin_cmd_run_as_different_user"),
+                    Action = c =>
+                    {
+                        Task.Run(() => Execute(ShellCommand.RunAsDifferentUser, PrepareProcessStartInfo(selectedResult.Title)));
+                        return true;
+                    },
+                    IcoPath = "Images/app.png"
+                },
+                new Result
+                {
+                    Title = _context.API.GetTranslation("wox_plugin_cmd_run_as_administrator"),
+                    Action = c =>
+                    {
+                        Execute(Process.Start, PrepareProcessStartInfo(selectedResult.Title, true));
+                        return true;
+                    },
+                    IcoPath = Image
+                }
+            };
+
+            return results;
+        }
+
+        #endregion
+
+        #region Private
 
         private List<Result> GetHistoryCmds(string cmd, Result result)
         {
-            IEnumerable<Result> history = _settings.Count.Where(o => o.Key.Contains(cmd))
+            var history = _settings.Count.Where(o => o.Key.Contains(cmd))
                 .OrderByDescending(o => o.Value)
                 .Select(m =>
                 {
@@ -133,7 +183,7 @@ namespace Wox.Plugin.Shell
 
         private Result GetCurrentCmd(string cmd)
         {
-            Result result = new Result
+            var result = new Result
             {
                 Title = cmd,
                 Score = 5000,
@@ -149,9 +199,9 @@ namespace Wox.Plugin.Shell
             return result;
         }
 
-        private List<Result> ResultsFromlHistory()
+        private List<Result> ResultsFromHistory()
         {
-            IEnumerable<Result> history = _settings.Count.OrderByDescending(o => o.Value)
+            var history = _settings.Count.OrderByDescending(o => o.Value)
                 .Select(m => new Result
                 {
                     Title = m.Key,
@@ -177,56 +227,48 @@ namespace Wox.Plugin.Shell
             if (_settings.Shell == Shell.Cmd)
             {
                 var arguments = _settings.LeaveShellOpen ? $"/k \"{command}\"" : $"/c \"{command}\" & pause";
-                
-                info = ShellCommand.SetProcessStartInfo("cmd.exe", workingDirectory, arguments, runAsAdministratorArg);
+
+                info = "cmd.exe".SetProcessStartInfo(workingDirectory, arguments, runAsAdministratorArg);
             }
             else if (_settings.Shell == Shell.Powershell)
             {
                 string arguments;
                 if (_settings.LeaveShellOpen)
-                {
                     arguments = $"-NoExit \"{command}\"";
-                }
                 else
-                {
                     arguments = $"\"{command} ; Read-Host -Prompt \\\"Press Enter to continue\\\"\"";
-                }
 
-                info = ShellCommand.SetProcessStartInfo("powershell.exe", workingDirectory, arguments, runAsAdministratorArg);
+                info = "powershell.exe".SetProcessStartInfo(workingDirectory, arguments, runAsAdministratorArg);
             }
             else if (_settings.Shell == Shell.RunCommand)
             {
-                var parts = command.Split(new[] { ' ' }, 2);
+                var parts = command.Split(new[] {' '}, 2);
                 if (parts.Length == 2)
                 {
                     var filename = parts[0];
                     if (ExistInPath(filename))
                     {
                         var arguments = parts[1];
-                        info = ShellCommand.SetProcessStartInfo(filename, workingDirectory, arguments, runAsAdministratorArg);
+                        info = filename.SetProcessStartInfo(workingDirectory, arguments, runAsAdministratorArg);
                     }
                     else
                     {
-                        info = ShellCommand.SetProcessStartInfo(command, verb: runAsAdministratorArg);
+                        info = command.SetProcessStartInfo(verb: runAsAdministratorArg);
                     }
                 }
                 else
                 {
-                    info = ShellCommand.SetProcessStartInfo(command, verb: runAsAdministratorArg);
+                    info = command.SetProcessStartInfo(verb: runAsAdministratorArg);
                 }
             }
             else if (_settings.Shell == Shell.Bash && _settings.SupportWSL)
             {
                 string arguments;
                 if (_settings.LeaveShellOpen)
-                {
                     // FIXME: How to deal with commands containing single quote?
                     arguments = $"-c \'{command} ; $SHELL\'";
-                }
                 else
-                {
                     arguments = $"-c \'{command} ; echo -n Press any key to exit... ; read -n1\'";
-                }
                 info = new ProcessStartInfo
                 {
                     FileName = "bash.exe",
@@ -245,11 +287,11 @@ namespace Wox.Plugin.Shell
             return info;
         }
 
-        private void Execute(Func<ProcessStartInfo, Process> startProcess,ProcessStartInfo info)
+        private void Execute(Func<ProcessStartInfo, Process> startProcess, ProcessStartInfo info)
         {
             try
             {
-                startProcess(info);                
+                startProcess(info);
             }
             catch (FileNotFoundException e)
             {
@@ -257,7 +299,7 @@ namespace Wox.Plugin.Shell
                 var message = $"Command not found: {e.Message}";
                 _context.API.ShowMsg(name, message);
             }
-            catch(Win32Exception e)
+            catch (Win32Exception e)
             {
                 var name = "Plugin: Shell";
                 var message = $"Error running the command: {e.Message}";
@@ -267,107 +309,52 @@ namespace Wox.Plugin.Shell
 
         private bool ExistInPath(string filename)
         {
-            if (File.Exists(filename))
+            if (File.Exists(filename)) return true;
+
+            var values = Environment.GetEnvironmentVariable("PATH");
+            if (values != null)
             {
-                return true;
-            }
-            else
-            {
-                var values = Environment.GetEnvironmentVariable("PATH");
-                if (values != null)
+                foreach (var path in values.Split(';'))
                 {
-                    foreach (var path in values.Split(';'))
-                    {
-                        var path1 = Path.Combine(path, filename);
-                        var path2 = Path.Combine(path, filename + ".exe");
-                        if (File.Exists(path1) || File.Exists(path2))
-                        {
-                            return true;
-                        }
-                    }
-                    return false;
+                    var path1 = Path.Combine(path, filename);
+                    var path2 = Path.Combine(path, filename + ".exe");
+                    if (File.Exists(path1) || File.Exists(path2)) return true;
                 }
-                else
-                {
-                    return false;
-                }
+
+                return false;
             }
+
+            return false;
         }
 
-        public void Init(PluginInitContext context)
-        {
-            this._context = context;
-            context.API.GlobalKeyboardEvent += API_GlobalKeyboardEvent;
-        }
-
-        bool API_GlobalKeyboardEvent(int keyevent, int vkcode, SpecialKeyState state)
+        private bool API_GlobalKeyboardEvent(int keyEvent, int vkCode, SpecialKeyState state)
         {
             if (_settings.ReplaceWinR)
             {
-                if (keyevent == (int)KeyEvent.WM_KEYDOWN && vkcode == (int)Keys.R && state.WinPressed)
+                if (keyEvent == (int) KeyEvent.WM_KEYDOWN && vkCode == (int) Keys.R && state.WinPressed)
                 {
                     _winRStroked = true;
                     OnWinRPressed();
                     return false;
                 }
-                if (keyevent == (int)KeyEvent.WM_KEYUP && _winRStroked && vkcode == (int)Keys.LWin)
+
+                if (keyEvent == (int) KeyEvent.WM_KEYUP && _winRStroked && vkCode == (int) Keys.LWin)
                 {
                     _winRStroked = false;
                     _keyboardSimulator.ModifiedKeyStroke(VirtualKeyCode.LWIN, VirtualKeyCode.CONTROL);
                     return false;
                 }
             }
+
             return true;
         }
 
         private void OnWinRPressed()
         {
-            _context.API.ChangeQuery($"{_context.CurrentPluginMetadata.ActionKeywords[0]}{Plugin.Query.TermSeperater}");
+            _context.API.ChangeQuery($"{_context.CurrentPluginMetadata.ActionKeywords[0]}{Plugin.Query.TermSeparator}");
             Application.Current.MainWindow.Visibility = Visibility.Visible;
         }
 
-        public Control CreateSettingPanel()
-        {
-            return new CMDSetting(_settings);
-        }
-
-        public string GetTranslatedPluginTitle()
-        {
-            return _context.API.GetTranslation("wox_plugin_cmd_plugin_name");
-        }
-
-        public string GetTranslatedPluginDescription()
-        {
-            return _context.API.GetTranslation("wox_plugin_cmd_plugin_description");
-        }
-
-        public List<Result> LoadContextMenus(Result selectedResult)
-        {
-            var resultlist = new List<Result>
-            {
-                new Result
-                {
-                    Title = _context.API.GetTranslation("wox_plugin_cmd_run_as_different_user"),
-                    Action = c =>
-                    {
-                        Task.Run(() =>Execute(ShellCommand.RunAsDifferentUser, PrepareProcessStartInfo(selectedResult.Title)));
-                        return true;
-                    },
-                    IcoPath = "Images/app.png"
-                },
-                new Result
-                {
-                    Title = _context.API.GetTranslation("wox_plugin_cmd_run_as_administrator"),
-                    Action = c =>
-                    {
-                        Execute(Process.Start, PrepareProcessStartInfo(selectedResult.Title, true));
-                        return true;
-                    },
-                    IcoPath = Image
-                }
-            };
-
-            return resultlist;
-        }
+        #endregion
     }
 }

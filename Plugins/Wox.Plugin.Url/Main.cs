@@ -1,57 +1,60 @@
-using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Windows.Controls;
-using Wox.Infrastructure.Storage;
-using Wox.Infrastructure;
-
 namespace Wox.Plugin.Url
 {
-    public class Main : ISettingProvider,IPlugin, IPluginI18n, ISavable
+    using System;
+    using System.Collections.Generic;
+    using System.Text.RegularExpressions;
+    using System.Windows.Controls;
+    using Infrastructure;
+    using Infrastructure.Storage;
+
+    public class Main : ISettingProvider, IPlugin, IPluginI18n, ISavable
     {
         //based on https://gist.github.com/dperini/729294
         private const string urlPattern = "^" +
-            // protocol identifier
-            "(?:(?:https?|ftp)://|)" +
-            // user:pass authentication
-            "(?:\\S+(?::\\S*)?@)?" +
-            "(?:" +
-            // IP address exclusion
-            // private & local networks
-            "(?!(?:10|127)(?:\\.\\d{1,3}){3})" +
-            "(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})" +
-            "(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})" +
-            // IP address dotted notation octets
-            // excludes loopback network 0.0.0.0
-            // excludes reserved space >= 224.0.0.0
-            // excludes network & broacast addresses
-            // (first & last IP address of each class)
-            "(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])" +
-            "(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}" +
-            "(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))" +
-            "|" +
-            // host name
-            "(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)" +
-            // domain name
-            "(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*" +
-            // TLD identifier
-            "(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))" +
-            ")" +
-            // port number
-            "(?::\\d{2,5})?" +
-            // resource path
-            "(?:/\\S*)?" +
-            "$";
-        Regex reg = new Regex(urlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-        private PluginInitContext context;
+                                          // protocol identifier
+                                          "(?:(?:https?|ftp)://|)" +
+                                          // user:pass authentication
+                                          "(?:\\S+(?::\\S*)?@)?" +
+                                          "(?:" +
+                                          // IP address exclusion
+                                          // private & local networks
+                                          "(?!(?:10|127)(?:\\.\\d{1,3}){3})" +
+                                          "(?!(?:169\\.254|192\\.168)(?:\\.\\d{1,3}){2})" +
+                                          "(?!172\\.(?:1[6-9]|2\\d|3[0-1])(?:\\.\\d{1,3}){2})" +
+                                          // IP address dotted notation octets
+                                          // excludes loopback network 0.0.0.0
+                                          // excludes reserved space >= 224.0.0.0
+                                          // excludes network & broacast addresses
+                                          // (first & last IP address of each class)
+                                          "(?:[1-9]\\d?|1\\d\\d|2[01]\\d|22[0-3])" +
+                                          "(?:\\.(?:1?\\d{1,2}|2[0-4]\\d|25[0-5])){2}" +
+                                          "(?:\\.(?:[1-9]\\d?|1\\d\\d|2[0-4]\\d|25[0-4]))" +
+                                          "|" +
+                                          // host name
+                                          "(?:(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)" +
+                                          // domain name
+                                          "(?:\\.(?:[a-z\\u00a1-\\uffff0-9]-*)*[a-z\\u00a1-\\uffff0-9]+)*" +
+                                          // TLD identifier
+                                          "(?:\\.(?:[a-z\\u00a1-\\uffff]{2,}))" +
+                                          ")" +
+                                          // port number
+                                          "(?::\\d{2,5})?" +
+                                          // resource path
+                                          "(?:/\\S*)?" +
+                                          "$";
+
         private readonly Settings _settings;
         private readonly PluginJsonStorage<Settings> _storage;
+        private PluginInitContext context;
+        private readonly Regex reg = new Regex(urlPattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
         public Main()
         {
             _storage = new PluginJsonStorage<Settings>();
             _settings = _storage.Load();
         }
+
+        #region Public
 
         public void Save()
         {
@@ -62,35 +65,27 @@ namespace Wox.Plugin.Url
         {
             var raw = query.Search;
             if (IsURL(raw))
-            {
                 return new List<Result>
                 {
                     new Result
                     {
                         Title = raw,
-                        SubTitle = string.Format(context.API.GetTranslation("wox_plugin_url_open_url"),raw),
+                        SubTitle = string.Format(context.API.GetTranslation("wox_plugin_url_open_url"), raw),
                         IcoPath = "Images/url.png",
                         Score = 8,
                         Action = _ =>
                         {
-                            if (!raw.ToLower().StartsWith("http"))
-                            {
-                                raw = "http://" + raw;
-                            }
+                            if (!raw.ToLower().StartsWith("http")) raw = "http://" + raw;
                             try
                             {
                                 if (_settings.OpenInNewBrowserWindow)
-                                {
                                     raw.NewBrowserWindow(_settings.BrowserPath);
-                                }
                                 else
-                                {
                                     raw.NewTabInBrowser(_settings.BrowserPath);
-                                }
-                                
+
                                 return true;
                             }
-                            catch(Exception)
+                            catch (Exception)
                             {
                                 context.API.ShowMsg(string.Format(context.API.GetTranslation("wox_plugin_url_canot_open_url"), raw));
                                 return false;
@@ -98,14 +93,13 @@ namespace Wox.Plugin.Url
                         }
                     }
                 };
-            }
             return new List<Result>(0);
         }
 
 
         public Control CreateSettingPanel()
         {
-            return new SettingsControl(context.API,_settings);
+            return new SettingsControl(context.API, _settings);
         }
 
         public bool IsURL(string raw)
@@ -117,10 +111,8 @@ namespace Wox.Plugin.Url
             if (raw == "localhost" || raw.StartsWith("localhost:") ||
                 raw == "http://localhost" || raw.StartsWith("http://localhost:") ||
                 raw == "https://localhost" || raw.StartsWith("https://localhost:")
-                )
-            {
+            )
                 return true;
-            }
 
             return false;
         }
@@ -139,5 +131,7 @@ namespace Wox.Plugin.Url
         {
             return context.API.GetTranslation("wox_plugin_url_plugin_description");
         }
+
+        #endregion
     }
 }

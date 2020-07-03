@@ -36,7 +36,7 @@
 
     <system:String x:Key="wox_plugin_program_plugin_name">תוכנה</system:String>
     <system:String x:Key="wox_plugin_program_plugin_description">חפש תוכנות ב Wox</system:String>
-    
+
     <system:String x:Key="wox_plugin_program_ignored_sequences">רצפים שיש להתעלם מהם</system:String>
     <system:String x:Key="wox_plugin_program_sequence">רצף</system:String>
     <system:String x:Key="wox_plugin_program_pls_select_ignored">אנא בחר רצף שמתעלמים ממנו</system:String>
@@ -44,5 +44,5 @@
     <system:String x:Key="wox_plugin_program_use_regex">השתמש בביטויים רגילים (RegEx)?</system:String>
 
     <system:String x:Key="wox_plugin_program_invalid_path">נתיב לא חוקי</system:String>
-    
+
 </ResourceDictionary>

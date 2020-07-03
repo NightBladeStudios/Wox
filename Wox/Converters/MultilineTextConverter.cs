@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Data;
-
-namespace Wox.Converters
+﻿namespace Wox.Converters
 {
-    class MultilineTextConverter: IValueConverter
+    using System;
+    using System.Globalization;
+    using System.Windows.Data;
+
+    internal class MultilineTextConverter : IValueConverter
     {
+        #region Public
+
         /// <inheritdoc />
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
@@ -21,5 +19,7 @@ namespace Wox.Converters
         {
             return (value as string)?.Replace("\u2007", "\n") ?? string.Empty;
         }
+
+        #endregion
     }
 }

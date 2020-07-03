@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using NUnit.Framework;
-using Wox.Core;
-using Wox.Core.Configuration;
-using Wox.Core.Plugin;
-using Wox.Infrastructure;
-using Wox.Image;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-using Wox.ViewModel;
-
-namespace Wox.Test
+﻿namespace Wox.Test
 {
+    using System.Linq;
+    using Core.Configuration;
+    using Core.Plugin;
+    using Image;
+    using Infrastructure;
+    using Infrastructure.UserSettings;
+    using NUnit.Framework;
+    using ViewModel;
+
     [TestFixture]
-    class PluginManagerTest
+    internal class PluginManagerTest
     {
         [OneTimeSetUp]
         public void setUp()
@@ -24,28 +20,26 @@ namespace Wox.Test
             Settings.Initialize();
             ImageLoader.Initialize();
 
-            Portable portable = new Portable();
-            SettingWindowViewModel settingsVm = new SettingWindowViewModel(portable);
+            var portable = new Portable();
+            var settingsVm = new SettingWindowViewModel(portable);
 
-            StringMatcher stringMatcher = new StringMatcher();
+            var stringMatcher = new StringMatcher();
             StringMatcher.Instance = stringMatcher;
             stringMatcher.UserSettingSearchPrecision = Settings.Instance.QuerySearchPrecision;
 
             PluginManager.LoadPlugins(Settings.Instance.PluginSettings);
-            MainViewModel mainVm = new MainViewModel(false);
-            PublicAPIInstance api = new PublicAPIInstance(settingsVm, mainVm);
+            var mainVm = new MainViewModel(false);
+            var api = new PublicAPIInstance(settingsVm, mainVm);
             PluginManager.InitializePlugins(api);
-
         }
 
         [TestCase("setting", "Settings")]
         [TestCase("netwo", "Network and Sharing Center")]
         public void BuiltinQueryTest(string QueryText, string ResultTitle)
         {
-            
-            Query query = QueryBuilder.Build(QueryText.Trim(), PluginManager.NonGlobalPlugins);
-            List<PluginPair> plugins = PluginManager.AllPlugins;
-            Result result = plugins.SelectMany(
+            var query = QueryBuilder.Build(QueryText.Trim(), PluginManager.NonGlobalPlugins);
+            var plugins = PluginManager.AllPlugins;
+            var result = plugins.SelectMany(
                     p => PluginManager.QueryForPlugin(p, query)
                 )
                 .OrderByDescending(r => r.Score)

@@ -1,19 +1,20 @@
-﻿using System;
-using System.Drawing.Printing;
-using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Interop;
-
-namespace Wox.Helper
+﻿namespace Wox.Helper
 {
+    using System;
+    using System.Drawing.Printing;
+    using System.Runtime.InteropServices;
+    using System.Windows;
+    using System.Windows.Interop;
+
     public class DwmDropShadow
     {
-
         [DllImport("dwmapi.dll", PreserveSig = true)]
         private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref Margins pMarInset);
+
+        #region Public
 
         /// <summary>
         /// Drops a standard shadow to a WPF Window, even if the window isborderless. Only works with DWM (Vista and Seven).
@@ -23,15 +24,16 @@ namespace Wox.Helper
         /// <param name="window">Window to which the shadow will be applied</param>
         public static void DropShadowToWindow(Window window)
         {
-            if (!DropShadow(window))
-            {
-                window.SourceInitialized += window_SourceInitialized;
-            }
+            if (!DropShadow(window)) window.SourceInitialized += window_SourceInitialized;
         }
+
+        #endregion
+
+        #region Private
 
         private static void window_SourceInitialized(object sender, EventArgs e) //fixed typo
         {
-            Window window = (Window)sender;
+            var window = (Window) sender;
 
             DropShadow(window);
 
@@ -47,20 +49,18 @@ namespace Wox.Helper
         {
             try
             {
-                WindowInteropHelper helper = new WindowInteropHelper(window);
-                int val = 2;
-                int ret1 = DwmSetWindowAttribute(helper.Handle, 2, ref val, 4);  
+                var helper = new WindowInteropHelper(window);
+                var val = 2;
+                var ret1 = DwmSetWindowAttribute(helper.Handle, 2, ref val, 4);
 
                 if (ret1 == 0)
                 {
-                    Margins m = new Margins { Bottom = 0, Left = 0, Right = 0, Top = 0 };
-                    int ret2 = DwmExtendFrameIntoClientArea(helper.Handle, ref m);
+                    var m = new Margins {Bottom = 0, Left = 0, Right = 0, Top = 0};
+                    var ret2 = DwmExtendFrameIntoClientArea(helper.Handle, ref m);
                     return ret2 == 0;
                 }
-                else
-                {
-                    return false;
-                }
+
+                return false;
             }
             catch (Exception)
             {
@@ -69,5 +69,6 @@ namespace Wox.Helper
             }
         }
 
+        #endregion
     }
 }

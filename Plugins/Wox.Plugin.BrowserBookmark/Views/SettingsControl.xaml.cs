@@ -1,10 +1,10 @@
-using Microsoft.Win32;
-using System.Windows;
-using System.Windows.Controls;
-using Wox.Plugin.BrowserBookmark.Models;
-
 namespace Wox.Plugin.BrowserBookmark.Views
 {
+    using System.Windows;
+    using System.Windows.Controls;
+    using Microsoft.Win32;
+    using Models;
+
     /// <summary>
     /// Interaction logic for BrowserBookmark.xaml
     /// </summary>
@@ -19,7 +19,9 @@ namespace Wox.Plugin.BrowserBookmark.Views
             browserPathBox.Text = _settings.BrowserPath;
             NewWindowBrowser.IsChecked = _settings.OpenInNewBrowserWindow;
             NewTabInBrowser.IsChecked = !_settings.OpenInNewBrowserWindow;
-        }        
+        }
+
+        #region Private
 
         private void OnNewBrowserWindowClick(object sender, RoutedEventArgs e)
         {
@@ -43,5 +45,7 @@ namespace Wox.Plugin.BrowserBookmark.Views
                 _settings.BrowserPath = fileBrowserDialog.FileName;
             }
         }
+
+        #endregion
     }
 }

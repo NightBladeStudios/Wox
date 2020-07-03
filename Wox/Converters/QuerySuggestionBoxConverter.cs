@@ -1,45 +1,35 @@
-﻿using System;
-using System.Globalization;
-using System.Windows.Data;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.ViewModel;
-
-namespace Wox.Converters
+﻿namespace Wox.Converters
 {
+    using System;
+    using System.Globalization;
+    using System.Windows.Data;
+    using Infrastructure.Logger;
+    using NLog;
+    using ViewModel;
+
     public class QuerySuggestionBoxConverter : IMultiValueConverter
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+        #region Public
+
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values.Length != 2)
-            {
-                return string.Empty;
-            }
+            if (values.Length != 2) return string.Empty;
 
             // first prop is the current query string
-            var queryText = (string)values[0];
+            var queryText = (string) values[0];
 
-            if (string.IsNullOrEmpty(queryText))
-            {
-                return string.Empty;
-            }
+            if (string.IsNullOrEmpty(queryText)) return string.Empty;
 
             // second prop is the current selected item result
             var val = values[1];
-            if (val == null)
-            {
-                return string.Empty;
-            }
-            if (!(val is ResultViewModel))
-            {
-                return System.Windows.Data.Binding.DoNothing;
-            }
+            if (val == null) return string.Empty;
+            if (!(val is ResultViewModel)) return Binding.DoNothing;
 
             try
             {
-                var selectedItem = (ResultViewModel)val;
+                var selectedItem = (ResultViewModel) val;
 
                 var selectedResult = selectedItem.Result;
                 var selectedResultActionKeyword = string.IsNullOrEmpty(selectedResult.ActionKeywordAssigned) ? "" : selectedResult.ActionKeywordAssigned + " ";
@@ -63,5 +53,7 @@ namespace Wox.Converters
         {
             throw new NotImplementedException();
         }
+
+        #endregion
     }
 }

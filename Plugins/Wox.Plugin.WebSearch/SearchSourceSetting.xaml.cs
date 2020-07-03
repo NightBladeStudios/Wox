@@ -1,36 +1,38 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Windows;
-using Microsoft.Win32;
-using Wox.Core.Plugin;
-
-namespace Wox.Plugin.WebSearch
+﻿namespace Wox.Plugin.WebSearch
 {
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Windows;
+    using Core.Plugin;
+    using Microsoft.Win32;
+
     public partial class SearchSourceSettingWindow
     {
         private readonly SearchSource _oldSearchSource;
+        private Action _action;
+        private IPublicAPI _api;
+        private PluginInitContext _context;
         private SearchSource _searchSource;
         private IList<SearchSource> _searchSources;
-        private Action _action;
-        private PluginInitContext _context;
-        private IPublicAPI _api;
-        private SearchSourceViewModel _viewModel;
+        private readonly SearchSourceViewModel _viewModel;
 
 
         public SearchSourceSettingWindow(IList<SearchSource> sources, PluginInitContext context, SearchSource old)
         {
             _oldSearchSource = old;
             _viewModel = new SearchSourceViewModel {SearchSource = old.DeepCopy()};
-            Initilize(sources, context, Action.Edit);
+            Initialize(sources, context, Action.Edit);
         }
 
         public SearchSourceSettingWindow(IList<SearchSource> sources, PluginInitContext context)
         {
             _viewModel = new SearchSourceViewModel {SearchSource = new SearchSource()};
-            Initilize(sources, context, Action.Add);
+            Initialize(sources, context, Action.Add);
         }
 
-        private void Initilize(IList<SearchSource> sources, PluginInitContext context, Action action)
+        #region Private
+
+        private void Initialize(IList<SearchSource> sources, PluginInitContext context, Action action)
         {
             InitializeComponent();
             DataContext = _viewModel;
@@ -126,10 +128,10 @@ namespace Wox.Plugin.WebSearch
             var result = dialog.ShowDialog();
             if (result == true)
             {
-                var fullpath = dialog.FileName;
-                if (!string.IsNullOrEmpty(fullpath))
+                var fullPath = dialog.FileName;
+                if (!string.IsNullOrEmpty(fullPath))
                 {
-                    _searchSource.Icon = Path.GetFileName(fullpath);
+                    _searchSource.Icon = Path.GetFileName(fullPath);
                     if (!File.Exists(_searchSource.IconPath))
                     {
                         _searchSource.Icon = SearchSource.DefaultIcon;
@@ -138,6 +140,8 @@ namespace Wox.Plugin.WebSearch
                 }
             }
         }
+
+        #endregion
     }
 
     public enum Action

@@ -1,30 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Windows.Media;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Windows.Media;
 
     public class Result : BaseModel
     {
-        private string _icoPath;
+        public delegate ImageSource IconDelegate();
 
         public string Title { get; set; }
 
         public string SubTitle { get; set; }
 
         /// <summary>
-        /// This holds the action keyword that triggered the result. 
+        /// This holds the action keyword that triggered the result.
         /// If result is triggered by global keyword: *, this should be empty.
         /// </summary>
         public string ActionKeywordAssigned { get; set; }
 
         public string IcoPath { get; set; }
-
-        public delegate ImageSource IconDelegate();
-
-        public IconDelegate Icon;
 
 
         /// <summary>
@@ -45,35 +39,9 @@ namespace Wox.Plugin
         public IList<int> SubTitleHighlightData { get; set; }
 
         /// <summary>
-        /// Only results that originQuery match with current query will be displayed in the panel
-        /// </summary>
-        internal Query OriginQuery { get; set; }
-
-        /// <summary>
         /// Plugin directory
         /// </summary>
         public string PluginDirectory { get; set; }
-
-        public override bool Equals(object obj)
-        {
-            var r = obj as Result;
-            var equality = r?.PluginID == PluginID && r?.Title == Title && r?.SubTitle == SubTitle;
-            return equality;
-        }
-
-        public override int GetHashCode()
-        {
-            int hash1 = PluginID?.GetHashCode() ?? 0;
-            int hash2 = Title?.GetHashCode() ?? 0;
-            int hash3 = SubTitle?.GetHashCode() ?? 0;
-            int hashcode = hash1 ^ hash2 ^ hash3;
-            return hashcode;
-        }
-
-        public override string ToString()
-        {
-            return Title + SubTitle;
-        }
 
 
         /// <summary>
@@ -81,16 +49,6 @@ namespace Wox.Plugin
         /// </summary>
         [Obsolete("Use IContextMenu instead")]
         public List<Result> ContextMenu { get; set; }
-
-        [Obsolete("Use Object initializer instead")]
-        public Result(string Title, string IcoPath, string SubTitle = null)
-        {
-            this.Title = Title;
-            this.IcoPath = IcoPath;
-            this.SubTitle = SubTitle;
-        }
-
-        public Result() { }
 
         /// <summary>
         /// Additional data associate with this result
@@ -101,5 +59,51 @@ namespace Wox.Plugin
         /// Plugin ID that generated this result
         /// </summary>
         public string PluginID { get; internal set; }
+
+        [Obsolete("Use Object initializer instead")]
+        public Result(string Title, string IcoPath, string SubTitle = null)
+        {
+            this.Title = Title;
+            this.IcoPath = IcoPath;
+            this.SubTitle = SubTitle;
+        }
+
+        public IconDelegate Icon;
+
+        /// <summary>
+        /// Only results that originQuery match with current query will be displayed in the panel
+        /// </summary>
+        internal Query OriginQuery { get; set; }
+
+        private string _icoPath;
+
+        public Result()
+        {
+        }
+
+        #region Public
+
+        public override bool Equals(object obj)
+        {
+            var r = obj as Result;
+            var equality = r?.PluginID == PluginID && r?.Title == Title && r?.SubTitle == SubTitle;
+            return equality;
+        }
+
+        public override int GetHashCode()
+        {
+            var hash1 = PluginID?.GetHashCode() ?? 0;
+            var hash2 = Title?.GetHashCode() ?? 0;
+            var hash3 = SubTitle?.GetHashCode() ?? 0;
+            var hashcode = hash1 ^ hash2 ^ hash3;
+            return hashcode;
+        }
+
+        public override string ToString()
+        {
+            return Title + SubTitle;
+        }
+
+        #endregion
     }
 }

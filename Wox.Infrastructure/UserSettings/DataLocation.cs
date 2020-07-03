@@ -1,18 +1,19 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Wox.Infrastructure.UserSettings
 {
+    using System;
+    using System.IO;
+
     public static class DataLocation
     {
         public const string PortableFolderName = "UserData";
         public const string DeletionIndicatorFile = ".dead";
         public static string PortableDataPath = Path.Combine(Constant.ProgramDirectory, PortableFolderName);
         public static string RoamingDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), Constant.Wox);
+
+        public static readonly string PluginsDirectory = Path.Combine(DataDirectory(), Constant.Plugins);
+
+        #region Public
+
         public static string DataDirectory()
         {
             if (PortableDataLocationInUse())
@@ -29,6 +30,6 @@ namespace Wox.Infrastructure.UserSettings
             return false;
         }
 
-        public static readonly string PluginsDirectory = Path.Combine(DataDirectory(), Constant.Plugins);
+        #endregion
     }
 }

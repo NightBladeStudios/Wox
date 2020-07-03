@@ -1,16 +1,14 @@
-﻿using NUnit.Framework;
-using Wox.Infrastructure;
-using Wox.Plugin.Url;
-
-namespace Wox.Test
+﻿namespace Wox.Test
 {
+    using NUnit.Framework;
+    using Plugin.Url;
+
     [TestFixture]
     public class UrlPluginTest
     {
         [Test]
         public void URLMatchTest()
         {
-
             var plugin = new Main();
             Assert.IsTrue(plugin.IsURL("http://www.google.com"));
             Assert.IsTrue(plugin.IsURL("https://www.google.com"));

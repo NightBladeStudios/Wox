@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Wox.Infrastructure.UserSettings;
-
-namespace Wox.Infrastructure.Storage
+﻿namespace Wox.Infrastructure.Storage
 {
-    public class WoxJsonStorage<T> : JsonStrorage<T> where T : new()
+    using System.IO;
+    using UserSettings;
+
+    public class WoxJsonStorage<T> : JsonStorage<T> where T : new()
     {
         public WoxJsonStorage()
         {

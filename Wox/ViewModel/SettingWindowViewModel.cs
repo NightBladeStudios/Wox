@@ -1,140 +1,72 @@
-using Microsoft.WindowsAPICodePack.Shell.Interop;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using Wox.Core;
-using Wox.Core.Configuration;
-using Wox.Core.Plugin;
-using Wox.Core.Resource;
-using Wox.Helper;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Storage;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
 namespace Wox.ViewModel
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Net;
+    using System.Threading.Tasks;
+    using System.Timers;
+    using System.Windows;
+    using System.Windows.Controls;
+    using System.Windows.Media;
+    using System.Windows.Media.Imaging;
+    using Core;
+    using Core.Configuration;
+    using Core.Plugin;
+    using Core.Resource;
+    using Helper;
+    using Infrastructure;
+    using Infrastructure.UserSettings;
+    using Plugin;
+
     public class SettingWindowViewModel : BaseModel
     {
-        private readonly Updater _updater;
-        private readonly IPortable _portable;
-
-        public SettingWindowViewModel(IPortable portable)
-        {
-
-            _updater = new Updater(Wox.Properties.Settings.Default.GithubRepo); ;
-            _portable = portable;
-            Settings = Settings.Instance;
-            Settings.PropertyChanged += (s, e) =>
-            {
-                if (e.PropertyName == nameof(Settings.ActivateTimes))
-                {
-                    OnPropertyChanged(nameof(ActivatedTimes));
-                }
-            };
-            AutoUpdates();
-        }
-
-        public Settings Settings { get; set; }
-
-        public async void UpdateApp()
-        {
-            if (PortableMode)
-            {
-                MessageBox.Show("Portable mode need check update manually in https://github.com/Wox-launcher/Wox/releases");
-            }
-            else
-            {
-                await _updater.UpdateApp(false, Settings.UpdateToPrereleases);
-            }
-        }
-
-        // This is only required to set at startup. When portable mode enabled/disabled a restart is always required
-        private bool _portableMode = DataLocation.PortableDataLocationInUse();
-        public bool PortableMode
-        {
-            get { return _portableMode; }
-            set
-            {
-                if (!_portable.CanUpdatePortability())
-                    return;
-
-                if (DataLocation.PortableDataLocationInUse())
-                {
-                    _portable.DisablePortableMode();
-                }
-                else
-                {
-                    _portable.EnablePortableMode();
-                }
-            }
-        }
-
-        private void AutoUpdates()
-        {
-            Task.Run(async () =>
-            {
-                if (Settings.Instance.AutoUpdates && !PortableMode)
-                {
-                    // check udpate every 5 hours
-                    var timer = new System.Timers.Timer(1000 * 60 * 60 * 5);
-                    timer.Elapsed += async (s, e) =>
-                    {
-                        await _updater.UpdateApp(true, Settings.Instance.UpdateToPrereleases);
-                    };
-                    timer.Start();
-
-                    // check updates on startup
-                    await _updater.UpdateApp(true, Settings.Instance.UpdateToPrereleases);
-                }
-            }).ContinueWith(ErrorReporting.UnhandledExceptionHandleTask, TaskContinuationOptions.OnlyOnFaulted);
-        }
-
-
-
-        public void Save()
-        {
-            Settings.Save();
-        }
-
-        #region general
-
         // todo a better name?
         public class LastQueryMode
         {
             public string Display { get; set; }
             public Infrastructure.UserSettings.LastQueryMode Value { get; set; }
         }
+
+        public Settings Settings { get; set; }
+
+        public bool PortableMode
+        {
+            get => _portableMode;
+            set
+            {
+                if (!_portable.CanUpdatePortability())
+                    return;
+
+                if (DataLocation.PortableDataLocationInUse())
+                    _portable.DisablePortableMode();
+                else
+                    _portable.EnablePortableMode();
+            }
+        }
+
         public List<LastQueryMode> LastQueryModes
         {
             get
             {
-                List<LastQueryMode> modes = new List<LastQueryMode>();
-                var enums = (Infrastructure.UserSettings.LastQueryMode[])Enum.GetValues(typeof(Infrastructure.UserSettings.LastQueryMode));
+                var modes = new List<LastQueryMode>();
+                var enums = (Infrastructure.UserSettings.LastQueryMode[]) Enum.GetValues(typeof(Infrastructure.UserSettings.LastQueryMode));
                 foreach (var e in enums)
                 {
                     var key = $"LastQuery{e}";
-                    var display = _translater.GetTranslation(key);
-                    var m = new LastQueryMode { Display = display, Value = e, };
+                    var display = _translator.GetTranslation(key);
+                    var m = new LastQueryMode {Display = display, Value = e};
                     modes.Add(m);
                 }
+
                 return modes;
             }
         }
 
         public string Language
         {
-            get
-            {
-                return Settings.Language;
-            }
+            get => Settings.Language;
             set
             {
                 InternationalizationManager.Instance.ChangeLanguage(value);
@@ -146,14 +78,8 @@ namespace Wox.ViewModel
 
         public bool ShouldUsePinyin
         {
-            get
-            {
-                return Settings.ShouldUsePinyin;
-            }
-            set
-            {
-                Settings.ShouldUsePinyin = value;
-            }
+            get => Settings.ShouldUsePinyin;
+            set => Settings.ShouldUsePinyin = value;
         }
 
         public List<string> QuerySearchPrecisionStrings
@@ -170,57 +96,8 @@ namespace Wox.ViewModel
             }
         }
 
-        private Internationalization _translater => InternationalizationManager.Instance;
-        public List<Language> Languages => _translater.LoadAvailableLanguages();
+        public List<Language> Languages => _translator.LoadAvailableLanguages();
         public IEnumerable<int> MaxResultsRange => Enumerable.Range(2, 16);
-
-        public string TestProxy()
-        {
-            var proxyServer = Settings.Proxy.Server;
-            var proxyUserName = Settings.Proxy.UserName;
-            if (string.IsNullOrEmpty(proxyServer))
-            {
-                return InternationalizationManager.Instance.GetTranslation("serverCantBeEmpty");
-            }
-            if (Settings.Proxy.Port <= 0)
-            {
-                return InternationalizationManager.Instance.GetTranslation("portCantBeEmpty");
-            }
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(_updater.GitHubRepository);
-
-            if (string.IsNullOrEmpty(proxyUserName) || string.IsNullOrEmpty(Settings.Proxy.Password))
-            {
-                request.Proxy = new WebProxy(proxyServer, Settings.Proxy.Port);
-            }
-            else
-            {
-                request.Proxy = new WebProxy(proxyServer, Settings.Proxy.Port)
-                {
-                    Credentials = new NetworkCredential(proxyUserName, Settings.Proxy.Password)
-                };
-            }
-            try
-            {
-                var response = (HttpWebResponse)request.GetResponse();
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    return InternationalizationManager.Instance.GetTranslation("proxyIsCorrect");
-                }
-                else
-                {
-                    return InternationalizationManager.Instance.GetTranslation("proxyConnectFailed");
-                }
-            }
-            catch
-            {
-                return InternationalizationManager.Instance.GetTranslation("proxyConnectFailed");
-            }
-        }
-
-        #endregion
-
-        #region plugin
 
         public static string Plugin => "http://www.wox.one/plugin";
         public PluginViewModel SelectedPlugin { get; set; }
@@ -232,7 +109,7 @@ namespace Wox.ViewModel
                 var metadatas = PluginManager.AllPlugins
                     .OrderBy(x => x.Metadata.Disabled)
                     .ThenBy(y => y.Metadata.Name)
-                    .Select(p => new PluginViewModel { PluginPair = p })
+                    .Select(p => new PluginViewModel {PluginPair = p})
                     .ToList();
                 return metadatas;
             }
@@ -250,24 +127,16 @@ namespace Wox.ViewModel
                     control.VerticalAlignment = VerticalAlignment.Stretch;
                     return control;
                 }
-                else
-                {
-                    return new Control();
-                }
+
+                return new Control();
             }
         }
-
-
-
-        #endregion
-
-        #region theme
 
         public static string Theme => @"http://www.wox.one/theme/builder";
 
         public string SelectedTheme
         {
-            get { return Settings.Theme; }
+            get => Settings.Theme;
             set
             {
                 Settings.Theme = value;
@@ -290,7 +159,7 @@ namespace Wox.ViewModel
                     bitmap.BeginInit();
                     bitmap.StreamSource = memStream;
                     bitmap.EndInit();
-                    var brush = new ImageBrush(bitmap) { Stretch = Stretch.UniformToFill };
+                    var brush = new ImageBrush(bitmap) {Stretch = Stretch.UniformToFill};
                     return brush;
                 }
                 else
@@ -356,8 +225,8 @@ namespace Wox.ViewModel
             get
             {
                 if (Fonts.SystemFontFamilies.Count(o =>
-                    o.FamilyNames.Values != null &&
-                    o.FamilyNames.Values.Contains(Settings.QueryBoxFont)) > 0)
+                        o.FamilyNames.Values != null &&
+                        o.FamilyNames.Values.Contains(Settings.QueryBoxFont)) > 0)
                 {
                     var font = new FontFamily(Settings.QueryBoxFont);
                     return font;
@@ -384,7 +253,7 @@ namespace Wox.ViewModel
                         Settings.QueryBoxFontStyle,
                         Settings.QueryBoxFontWeight,
                         Settings.QueryBoxFontStretch
-                        ));
+                    ));
                 return typeface;
             }
             set
@@ -401,8 +270,8 @@ namespace Wox.ViewModel
             get
             {
                 if (Fonts.SystemFontFamilies.Count(o =>
-                    o.FamilyNames.Values != null &&
-                    o.FamilyNames.Values.Contains(Settings.ResultFont)) > 0)
+                        o.FamilyNames.Values != null &&
+                        o.FamilyNames.Values.Contains(Settings.ResultFont)) > 0)
                 {
                     var font = new FontFamily(Settings.ResultFont);
                     return font;
@@ -429,7 +298,7 @@ namespace Wox.ViewModel
                         Settings.ResultFontStyle,
                         Settings.ResultFontWeight,
                         Settings.ResultFontStretch
-                        ));
+                    ));
                 return typeface;
             }
             set
@@ -450,7 +319,7 @@ namespace Wox.ViewModel
                         Settings.ResultHighlightFontStyle,
                         Settings.ResultHighlightFontWeight,
                         Settings.ResultHighlightFontStretch
-                        ));
+                    ));
                 return typeface;
             }
             set
@@ -462,20 +331,99 @@ namespace Wox.ViewModel
             }
         }
 
-        #endregion
-
-        #region hotkey
-
         public CustomPluginHotkey SelectedCustomPluginHotkey { get; set; }
-
-        #endregion
-
-        #region about
 
         public string Github => _updater.GitHubRepository;
         public string ReleaseNotes => _updater.GitHubRepository + @"/releases/latest";
         public static string Version => Constant.Version;
-        public string ActivatedTimes => string.Format(_translater.GetTranslation("about_activate_times"), Settings.ActivateTimes);
+        public string ActivatedTimes => string.Format(_translator.GetTranslation("about_activate_times"), Settings.ActivateTimes);
+
+        private Internationalization _translator => InternationalizationManager.Instance;
+        private readonly IPortable _portable;
+        private readonly Updater _updater;
+
+        // This is only required to set at startup. When portable mode enabled/disabled a restart is always required
+        private readonly bool _portableMode = DataLocation.PortableDataLocationInUse();
+
+        public SettingWindowViewModel(IPortable portable)
+        {
+            _updater = new Updater(Properties.Settings.Default.GithubRepo);
+            ;
+            _portable = portable;
+            Settings = Settings.Instance;
+            Settings.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(Settings.ActivateTimes)) OnPropertyChanged(nameof(ActivatedTimes));
+            };
+            AutoUpdates();
+        }
+
+        #region Public
+
+        public async void UpdateApp()
+        {
+            if (PortableMode)
+                MessageBox.Show("Portable mode need check update manually in https://github.com/Wox-launcher/Wox/releases");
+            else
+                await _updater.UpdateApp(false, Settings.UpdateToPreReleases);
+        }
+
+
+        public void Save()
+        {
+            Settings.Save();
+        }
+
+        public string TestProxy()
+        {
+            var proxyServer = Settings.Proxy.Server;
+            var proxyUserName = Settings.Proxy.UserName;
+            if (string.IsNullOrEmpty(proxyServer)) return InternationalizationManager.Instance.GetTranslation("serverCantBeEmpty");
+            if (Settings.Proxy.Port <= 0) return InternationalizationManager.Instance.GetTranslation("portCantBeEmpty");
+
+            var request = (HttpWebRequest) WebRequest.Create(_updater.GitHubRepository);
+
+            if (string.IsNullOrEmpty(proxyUserName) || string.IsNullOrEmpty(Settings.Proxy.Password))
+                request.Proxy = new WebProxy(proxyServer, Settings.Proxy.Port);
+            else
+                request.Proxy = new WebProxy(proxyServer, Settings.Proxy.Port)
+                {
+                    Credentials = new NetworkCredential(proxyUserName, Settings.Proxy.Password)
+                };
+            try
+            {
+                var response = (HttpWebResponse) request.GetResponse();
+                if (response.StatusCode == HttpStatusCode.OK)
+                    return InternationalizationManager.Instance.GetTranslation("proxyIsCorrect");
+                return InternationalizationManager.Instance.GetTranslation("proxyConnectFailed");
+            }
+            catch
+            {
+                return InternationalizationManager.Instance.GetTranslation("proxyConnectFailed");
+            }
+        }
+
+        #endregion
+
+        #region Private
+
+        private void AutoUpdates()
+        {
+            Task.Run(async () =>
+            {
+                if (Settings.Instance.AutoUpdates && !PortableMode)
+                {
+                    // check udpate every 5 hours
+                    var timer = new Timer(1000 * 60 * 60 * 5);
+                    timer.Elapsed += async (s, e) => { await _updater.UpdateApp(true, Settings.Instance.UpdateToPreReleases); };
+                    timer.Start();
+
+                    // check updates on startup
+                    await _updater.UpdateApp(true, Settings.Instance.UpdateToPreReleases);
+                }
+            }).ContinueWith(ErrorReporting.UnhandledExceptionHandleTask, TaskContinuationOptions.OnlyOnFaulted);
+        }
+
         #endregion
     }
 }

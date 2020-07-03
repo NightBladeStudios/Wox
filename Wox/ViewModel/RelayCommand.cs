@@ -1,27 +1,30 @@
-﻿using System;
-using System.Windows.Input;
-
-namespace Wox.ViewModel
+﻿namespace Wox.ViewModel
 {
+    using System;
+    using System.Windows.Input;
+
     public class RelayCommand : ICommand
     {
-        private Action<object> _action;
+        public event EventHandler CanExecuteChanged;
+        private readonly Action<object> _action;
 
         public RelayCommand(Action<object> action)
         {
             _action = action;
         }
 
+        #region Public
+
         public virtual bool CanExecute(object parameter)
         {
             return true;
         }
 
-        public event EventHandler CanExecuteChanged;
-
         public virtual void Execute(object parameter)
         {
             _action?.Invoke(parameter);
         }
+
+        #endregion
     }
 }

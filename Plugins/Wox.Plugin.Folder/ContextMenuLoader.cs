@@ -1,24 +1,27 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Threading.Tasks;
-using System.Windows;
-using NLog;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure;
-
 namespace Wox.Plugin.Folder
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Collections.Specialized;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using NLog;
+
     internal class ContextMenuLoader : IContextMenu
     {
-        private readonly PluginInitContext _context;
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+        private readonly PluginInitContext _context;
 
         public ContextMenuLoader(PluginInitContext context)
         {
             _context = context;
         }
+
+        #region Public
 
         public List<Result> LoadContextMenus(Result selectedResult)
         {
@@ -31,13 +34,13 @@ namespace Wox.Plugin.Folder
                     contextMenus.Add(CreateOpenContainingFolderResult(record));
                 }
 
-                var icoPath = (record.Type == ResultType.File) ? Main.FileImagePath : Main.FolderImagePath;
-                var fileOrFolder = (record.Type == ResultType.File) ? "file" : "folder";
+                var icoPath = record.Type == ResultType.File ? Main.FileImagePath : Main.FolderImagePath;
+                var fileOrFolder = record.Type == ResultType.File ? "file" : "folder";
                 contextMenus.Add(new Result
                 {
                     Title = "Copy path",
                     SubTitle = $"Copy the current {fileOrFolder} path to clipboard",
-                    Action = (context) =>
+                    Action = context =>
                     {
                         try
                         {
@@ -59,11 +62,11 @@ namespace Wox.Plugin.Folder
                 {
                     Title = $"Copy {fileOrFolder}",
                     SubTitle = $"Copy the {fileOrFolder} to clipboard",
-                    Action = (context) =>
+                    Action = context =>
                     {
                         try
                         {
-                            Clipboard.SetFileDropList(new System.Collections.Specialized.StringCollection { record.FullPath });
+                            Clipboard.SetFileDropList(new StringCollection {record.FullPath});
                             return true;
                         }
                         catch (Exception e)
@@ -73,7 +76,6 @@ namespace Wox.Plugin.Folder
                             _context.API.ShowMsg(message);
                             return false;
                         }
-                        
                     },
                     IcoPath = icoPath
                 });
@@ -83,7 +85,7 @@ namespace Wox.Plugin.Folder
                     {
                         Title = $"Delete {fileOrFolder}",
                         SubTitle = $"Delete the selected {fileOrFolder}",
-                        Action = (context) =>
+                        Action = context =>
                         {
                             try
                             {
@@ -92,7 +94,7 @@ namespace Wox.Plugin.Folder
                                 else
                                     Directory.Delete(record.FullPath);
                             }
-                            catch(Exception e)
+                            catch (Exception e)
                             {
                                 var message = $"Fail to delete {fileOrFolder} at {record.FullPath}";
                                 LogException(message, e);
@@ -109,11 +111,11 @@ namespace Wox.Plugin.Folder
                     contextMenus.Add(new Result
                     {
                         Title = "Run as different user",
-                        Action = (context) =>
+                        Action = context =>
                         {
                             try
                             {
-                                Task.Run(()=> ShellCommand.RunAsDifferentUser(record.FullPath.SetProcessStartInfo()));
+                                Task.Run(() => ShellCommand.RunAsDifferentUser(record.FullPath.SetProcessStartInfo()));
                             }
                             catch (FileNotFoundException e)
                             {
@@ -131,6 +133,15 @@ namespace Wox.Plugin.Folder
             return contextMenus;
         }
 
+        public void LogException(string message, Exception e)
+        {
+            Logger.WoxError($"{message}", e);
+        }
+
+        #endregion
+
+        #region Private
+
         private Result CreateOpenContainingFolderResult(SearchResult record)
         {
             return new Result
@@ -142,7 +153,7 @@ namespace Wox.Plugin.Folder
                     {
                         Process.Start("explorer.exe", $" /select,\"{record.FullPath}\"");
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         var message = $"Fail to open file at {record.FullPath}";
                         LogException(message, e);
@@ -159,7 +170,7 @@ namespace Wox.Plugin.Folder
 
         private Result CreateOpenWithEditorResult(SearchResult record)
         {
-            string editorPath = "notepad.exe"; // TODO add the ability to create a custom editor
+            var editorPath = "notepad.exe"; // TODO add the ability to create a custom editor
 
             var name = "Open With Editor: " + Path.GetFileNameWithoutExtension(editorPath);
             return new Result
@@ -184,14 +195,9 @@ namespace Wox.Plugin.Folder
             };
         }
 
-        public void LogException(string message, Exception e)
-        {
-            Logger.WoxError($"{message}", e);
-        }
-
         private bool CanRunAsDifferentUser(string path)
         {
-            switch(Path.GetExtension(path))
+            switch (Path.GetExtension(path))
             {
                 case ".exe":
                 case ".bat":
@@ -200,9 +206,10 @@ namespace Wox.Plugin.Folder
 
                 default:
                     return false;
-
             }
         }
+
+        #endregion
     }
 
     public class SearchResult

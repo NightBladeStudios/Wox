@@ -1,15 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using NLog;
-using Wox.Infrastructure.Logger;
-
-namespace Wox.Infrastructure
+﻿namespace Wox.Infrastructure
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
+    using Logger;
+
     public static class Stopwatch
     {
         private static readonly Dictionary<string, long> Count = new Dictionary<string, long>();
         private static readonly object Locker = new object();
+
+        #region Public
 
         /// <summary>
         /// This stopwatch will appear only in Debug mode
@@ -21,7 +22,7 @@ namespace Wox.Infrastructure
             action();
             stopWatch.Stop();
             var milliseconds = stopWatch.ElapsedMilliseconds;
-            string info = $"{message} <{milliseconds}ms>";
+            var info = $"{message} <{milliseconds}ms>";
             logger.WoxDebug(info, methodName);
             return milliseconds;
         }
@@ -33,7 +34,7 @@ namespace Wox.Infrastructure
             action();
             stopWatch.Stop();
             var milliseconds = stopWatch.ElapsedMilliseconds;
-            string info = $"{message} <{milliseconds}ms>";
+            var info = $"{message} <{milliseconds}ms>";
             logger.WoxInfo(info, methodName);
             return milliseconds;
         }
@@ -48,13 +49,9 @@ namespace Wox.Infrastructure
             lock (Locker)
             {
                 if (Count.ContainsKey(name))
-                {
                     Count[name] += milliseconds;
-                }
                 else
-                {
                     Count[name] = 0;
-                }
             }
         }
 
@@ -62,9 +59,11 @@ namespace Wox.Infrastructure
         {
             foreach (var key in Count.Keys)
             {
-                string info = $"{key} already cost {Count[key]}ms";
+                var info = $"{key} already cost {Count[key]}ms";
                 //Logger.WoxDebug(info);
             }
         }
+
+        #endregion
     }
 }

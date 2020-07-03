@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_pluginindicator_plugin_name">אינדיקטור לתוספים</system:String>
     <system:String x:Key="wox_plugin_pluginindicator_plugin_description">מציע מילות מפתח של פעולות עבור תוספים</system:String>
-    
+
 </ResourceDictionary>

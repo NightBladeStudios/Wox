@@ -1,17 +1,17 @@
-using Microsoft.Win32;
-using System.Windows;
-using System.Windows.Controls;
-using Wox.Core.Plugin;
-
 namespace Wox.Plugin.WebSearch
 {
+    using System.Windows;
+    using System.Windows.Controls;
+    using Core.Plugin;
+    using Microsoft.Win32;
+
     /// <summary>
     /// Interaction logic for WebSearchesSetting.xaml
     /// </summary>
     public partial class SettingsControl : UserControl
     {
-        private readonly Settings _settings;
         private readonly PluginInitContext _context;
+        private readonly Settings _settings;
 
         public SettingsControl(PluginInitContext context, SettingsViewModel viewModel)
         {
@@ -23,6 +23,8 @@ namespace Wox.Plugin.WebSearch
             NewWindowBrowser.IsChecked = _settings.OpenInNewBrowser;
             NewTabInBrowser.IsChecked = !_settings.OpenInNewBrowser;
         }
+
+        #region Private
 
         private void OnAddSearchSearchClick(object sender, RoutedEventArgs e)
         {
@@ -83,5 +85,7 @@ namespace Wox.Plugin.WebSearch
                 _settings.BrowserPath = fileBrowserDialog.FileName;
             }
         }
+
+        #endregion
     }
 }

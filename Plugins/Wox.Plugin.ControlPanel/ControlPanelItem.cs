@@ -1,16 +1,15 @@
-﻿using System.Diagnostics;
-using System.Drawing;
-
-namespace Wox.Plugin.ControlPanel
+﻿namespace Wox.Plugin.ControlPanel
 {
+    using System.Diagnostics;
+
     //from:https://raw.githubusercontent.com/CoenraadS/Windows-Control-Panel-Items
     public class ControlPanelItem
     {
-        public string LocalizedString { get; private set; }
-        public string InfoTip { get; private set; }
-        public string GUID { get; private set; }
-        public ProcessStartInfo ExecutablePath { get; private set; }
-        public string IconPath { get; private set; }
+        public string LocalizedString { get; }
+        public string InfoTip { get; }
+        public string GUID { get; }
+        public ProcessStartInfo ExecutablePath { get; }
+        public string IconPath { get; }
         public int Score { get; set; }
 
         public ControlPanelItem(string newLocalizedString, string newInfoTip, string newGUID, ProcessStartInfo newExecutablePath, string iconPath)
@@ -19,7 +18,7 @@ namespace Wox.Plugin.ControlPanel
             InfoTip = newInfoTip;
             ExecutablePath = newExecutablePath;
             GUID = newGUID;
-            string key = "EmbededIcon:";
+            var key = "EmbeddedIcon:";
             IconPath = $"{key}{iconPath}";
         }
     }

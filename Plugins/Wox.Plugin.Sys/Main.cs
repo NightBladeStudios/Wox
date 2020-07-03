@@ -1,32 +1,37 @@
-using NLog;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using System.Windows;
-using System.Windows.Forms;
-using System.Windows.Interop;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-using Application = System.Windows.Application;
-using Control = System.Windows.Controls.Control;
 using FormsApplication = System.Windows.Forms.Application;
-using MessageBox = System.Windows.MessageBox;
 
 namespace Wox.Plugin.Sys
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Runtime.InteropServices;
+    using System.Windows;
+    using System.Windows.Forms;
+    using System.Windows.Interop;
+    using Infrastructure;
+    using NLog;
+    using Application = System.Windows.Application;
+    using Control = System.Windows.Controls.Control;
+    using MessageBox = System.Windows.MessageBox;
+
     public class Main : IPlugin, ISettingProvider, IPluginI18n
     {
-        private PluginInitContext context;
-
-        #region DllImport
-
         internal const int EWX_LOGOFF = 0x00000000;
         internal const int EWX_SHUTDOWN = 0x00000001;
         internal const int EWX_REBOOT = 0x00000002;
         internal const int EWX_FORCE = 0x00000004;
         internal const int EWX_POWEROFF = 0x00000008;
         internal const int EWX_FORCEIFHUNG = 0x00000010;
+
+        // http://www.pinvoke.net/default.aspx/Enums/HRESULT.html
+        private enum HRESULT : uint
+        {
+            S_FALSE = 0x0001,
+            S_OK = 0x0000
+        }
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         [DllImport("user32")]
         private static extern bool ExitWindowsEx(uint uFlags, uint dwReason);
@@ -37,16 +42,9 @@ namespace Wox.Plugin.Sys
         [DllImport("Shell32.dll", CharSet = CharSet.Unicode)]
         private static extern uint SHEmptyRecycleBin(IntPtr hWnd, uint dwFlags);
 
-        // http://www.pinvoke.net/default.aspx/Enums/HRESULT.html
-        private enum HRESULT : uint
-        {
-            S_FALSE = 0x0001,
-            S_OK = 0x0000
-        }
+        private PluginInitContext context;
 
-        #endregion
-
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        #region Public
 
         public Control CreateSettingPanel()
         {
@@ -68,6 +66,7 @@ namespace Wox.Plugin.Sys
                     results.Add(c);
                 }
             }
+
             return results;
         }
 
@@ -75,6 +74,20 @@ namespace Wox.Plugin.Sys
         {
             this.context = context;
         }
+
+        public string GetTranslatedPluginTitle()
+        {
+            return context.API.GetTranslation("wox_plugin_sys_plugin_name");
+        }
+
+        public string GetTranslatedPluginDescription()
+        {
+            return context.API.GetTranslation("wox_plugin_sys_plugin_description");
+        }
+
+        #endregion
+
+        #region Private
 
         private List<Result> Commands()
         {
@@ -88,13 +101,10 @@ namespace Wox.Plugin.Sys
                     IcoPath = "Images\\shutdown.png",
                     Action = c =>
                     {
-                        var reuslt = MessageBox.Show(context.API.GetTranslation("wox_plugin_sys_dlgtext_shutdown_computer"),
-                                                     context.API.GetTranslation("wox_plugin_sys_shutdown_computer"),
-                                                     MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                        if (reuslt == MessageBoxResult.Yes)
-                        {
-                            Process.Start("shutdown", "/s /t 0");
-                        }
+                        var result = MessageBox.Show(context.API.GetTranslation("wox_plugin_sys_dlgtext_shutdown_computer"),
+                            context.API.GetTranslation("wox_plugin_sys_shutdown_computer"),
+                            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        if (result == MessageBoxResult.Yes) Process.Start("shutdown", "/s /t 0");
                         return true;
                     }
                 },
@@ -106,12 +116,9 @@ namespace Wox.Plugin.Sys
                     Action = c =>
                     {
                         var result = MessageBox.Show(context.API.GetTranslation("wox_plugin_sys_dlgtext_restart_computer"),
-                                                     context.API.GetTranslation("wox_plugin_sys_restart_computer"),
-                                                     MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                        if (result == MessageBoxResult.Yes)
-                        {
-                            Process.Start("shutdown", "/r /t 0");
-                        }
+                            context.API.GetTranslation("wox_plugin_sys_restart_computer"),
+                            MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                        if (result == MessageBoxResult.Yes) Process.Start("shutdown", "/r /t 0");
                         return true;
                     }
                 },
@@ -158,13 +165,11 @@ namespace Wox.Plugin.Sys
                         // FYI, couldn't find documentation for this but if the recycle bin is already empty, it will return -2147418113 (0x8000FFFF (E_UNEXPECTED))
                         // 0 for nothing
                         var result = SHEmptyRecycleBin(new WindowInteropHelper(Application.Current.MainWindow).Handle, 0);
-                        if (result != (uint) HRESULT.S_OK && result != (uint)0x8000FFFF)
-                        {
+                        if (result != (uint) HRESULT.S_OK && result != 0x8000FFFF)
                             MessageBox.Show($"Error emptying recycle bin, error code: {result}\n" +
                                             "please refer to https://msdn.microsoft.com/en-us/library/windows/desktop/aa378137",
-                                            "Error",
-                                            MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
+                                "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Error);
                         return true;
                     }
                 },
@@ -199,7 +204,7 @@ namespace Wox.Plugin.Sys
                     IcoPath = "Images\\app.png",
                     Action = c =>
                     {
-                        context.API.RestarApp();
+                        context.API.RestartApp();
                         return false;
                     }
                 },
@@ -248,14 +253,6 @@ namespace Wox.Plugin.Sys
             return results;
         }
 
-        public string GetTranslatedPluginTitle()
-        {
-            return context.API.GetTranslation("wox_plugin_sys_plugin_name");
-        }
-
-        public string GetTranslatedPluginDescription()
-        {
-            return context.API.GetTranslation("wox_plugin_sys_plugin_description");
-        }
+        #endregion
     }
 }

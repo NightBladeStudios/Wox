@@ -1,24 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-using NLog;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Exception;
-using Wox.Infrastructure.Logger;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox.Core.Plugin
+﻿namespace Wox.Core.Plugin
 {
+    using System;
+    using System.Collections.Generic;
+    using System.IO;
+    using System.Linq;
+    using System.Reflection;
+    using System.Threading.Tasks;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using Infrastructure.UserSettings;
+    using NLog;
+    using Wox.Plugin;
+
     public static class PluginsLoader
     {
         public const string PATH = "PATH";
         public const string Python = "python";
         public const string PythonExecutable = "pythonw.exe";
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
+        #region Public
 
         public static List<PluginPair> Plugins(List<PluginMetadata> metadatas, PluginsSettings settings)
         {
@@ -38,12 +39,11 @@ namespace Wox.Core.Plugin
             {
                 var milliseconds = Logger.StopWatchDebug($"Constructor init cost for {metadata.Name}", () =>
                 {
-
 #if DEBUG
                     var assembly = Assembly.Load(AssemblyName.GetAssemblyName(metadata.ExecuteFilePath));
                     var types = assembly.GetTypes();
                     var type = types.First(o => o.IsClass && !o.IsAbstract && o.GetInterfaces().Contains(typeof(IPlugin)));
-                    var plugin = (IPlugin)Activator.CreateInstance(type);
+                    var plugin = (IPlugin) Activator.CreateInstance(type);
 #else
                     Assembly assembly;
                     try
@@ -89,7 +89,7 @@ namespace Wox.Core.Plugin
                         return;
                     }
 #endif
-                    PluginPair pair = new PluginPair
+                    var pair = new PluginPair
                     {
                         Plugin = plugin,
                         Metadata = metadata
@@ -97,17 +97,16 @@ namespace Wox.Core.Plugin
                     plugins.Add(pair);
                 });
                 metadata.InitTime += milliseconds;
-
             });
             return plugins;
         }
 
-        public static IEnumerable<PluginPair> PythonPlugins(List<PluginMetadata> source, string pythonDirecotry)
+        public static IEnumerable<PluginPair> PythonPlugins(List<PluginMetadata> source, string pythonDirectory)
         {
             var metadatas = source.Where(o => o.Language.ToUpper() == AllowedLanguage.Python);
             string filename;
 
-            if (string.IsNullOrEmpty(pythonDirecotry))
+            if (string.IsNullOrEmpty(pythonDirectory))
             {
                 var paths = Environment.GetEnvironmentVariable(PATH);
                 if (paths != null)
@@ -131,7 +130,7 @@ namespace Wox.Core.Plugin
             }
             else
             {
-                var path = Path.Combine(pythonDirecotry, PythonExecutable);
+                var path = Path.Combine(pythonDirectory, PythonExecutable);
                 if (File.Exists(path))
                 {
                     filename = path;
@@ -142,6 +141,7 @@ namespace Wox.Core.Plugin
                     return new List<PluginPair>();
                 }
             }
+
             Constant.PythonPath = filename;
             var plugins = metadatas.Select(metadata => new PluginPair
             {
@@ -163,5 +163,6 @@ namespace Wox.Core.Plugin
             return plugins;
         }
 
+        #endregion
     }
 }

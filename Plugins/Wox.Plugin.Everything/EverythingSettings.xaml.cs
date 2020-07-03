@@ -1,9 +1,10 @@
-﻿using System.Windows;
-using System.Windows.Controls;
-using Microsoft.Win32;
-
-namespace Wox.Plugin.Everything
+﻿namespace Wox.Plugin.Everything
 {
+    using System.IO;
+    using System.Windows;
+    using System.Windows.Controls;
+    using Microsoft.Win32;
+
     public partial class EverythingSettings : UserControl
     {
         private readonly Settings _settings;
@@ -14,36 +15,31 @@ namespace Wox.Plugin.Everything
             _settings = settings;
         }
 
+        #region Private
+
         private void View_Loaded(object sender, RoutedEventArgs re)
         {
             UseLocationAsWorkingDir.IsChecked = _settings.UseLocationAsWorkingDir;
 
-            UseLocationAsWorkingDir.Checked += (o, e) =>
-            {
-                _settings.UseLocationAsWorkingDir = true;
-            };
+            UseLocationAsWorkingDir.Checked += (o, e) => { _settings.UseLocationAsWorkingDir = true; };
 
-            UseLocationAsWorkingDir.Unchecked += (o, e) =>
-            {
-                _settings.UseLocationAsWorkingDir = false;
-            };
+            UseLocationAsWorkingDir.Unchecked += (o, e) => { _settings.UseLocationAsWorkingDir = false; };
 
             EditorPath.Content = _settings.EditorPath;
         }
 
         private void EditorPath_Clicked(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
+            var openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "Executable File(*.exe)| *.exe";
             if (!string.IsNullOrEmpty(_settings.EditorPath))
-                openFileDialog.InitialDirectory = System.IO.Path.GetDirectoryName(_settings.EditorPath);
+                openFileDialog.InitialDirectory = Path.GetDirectoryName(_settings.EditorPath);
 
-            if (openFileDialog.ShowDialog() == true)
-            {
-                _settings.EditorPath = openFileDialog.FileName;
-            }
+            if (openFileDialog.ShowDialog() == true) _settings.EditorPath = openFileDialog.FileName;
 
             EditorPath.Content = _settings.EditorPath;
         }
+
+        #endregion
     }
 }

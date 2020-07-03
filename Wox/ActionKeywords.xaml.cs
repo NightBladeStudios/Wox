@@ -1,17 +1,16 @@
-﻿using System.Windows;
-using Wox.Core.Plugin;
-using Wox.Core.Resource;
-using Wox.Infrastructure.Exception;
-using Wox.Infrastructure.UserSettings;
-using Wox.Plugin;
-
-namespace Wox
+﻿namespace Wox
 {
+    using System.Windows;
+    using Core.Plugin;
+    using Core.Resource;
+    using Infrastructure.UserSettings;
+    using Plugin;
+
     public partial class ActionKeywords : Window
     {
-        private PluginPair _plugin;
+        private readonly Internationalization _translator = InternationalizationManager.Instance;
+        private readonly PluginPair _plugin;
         private Settings _settings;
-        private readonly Internationalization _translater = InternationalizationManager.Instance;
 
         public ActionKeywords(string pluginId, Settings settings)
         {
@@ -20,14 +19,16 @@ namespace Wox
             _settings = settings;
             if (_plugin == null)
             {
-                MessageBox.Show(_translater.GetTranslation("cannotFindSpecifiedPlugin"));
+                MessageBox.Show(_translator.GetTranslation("cannotFindSpecifiedPlugin"));
                 Close();
             }
         }
 
+        #region Private
+
         private void ActionKeyword_OnLoaded(object sender, RoutedEventArgs e)
         {
-            tbOldActionKeyword.Text = string.Join(Query.ActionKeywordSeperater, _plugin.Metadata.ActionKeywords.ToArray());
+            tbOldActionKeyword.Text = string.Join(Query.ActionKeywordSeparator, _plugin.Metadata.ActionKeywords.ToArray());
             tbAction.Focus();
         }
 
@@ -45,14 +46,16 @@ namespace Wox
             {
                 var id = _plugin.Metadata.ID;
                 PluginManager.ReplaceActionKeyword(id, oldActionKeyword, newActionKeyword);
-                MessageBox.Show(_translater.GetTranslation("success"));
+                MessageBox.Show(_translator.GetTranslation("success"));
                 Close();
             }
             else
             {
-                string msg = _translater.GetTranslation("newActionKeywordsHasBeenAssigned");
+                var msg = _translator.GetTranslation("newActionKeywordsHasBeenAssigned");
                 MessageBox.Show(msg);
             }
         }
+
+        #endregion
     }
 }

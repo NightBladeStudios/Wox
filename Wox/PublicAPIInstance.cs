@@ -1,29 +1,60 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using Squirrel;
-using Wox.Core;
-using Wox.Core.Plugin;
-using Wox.Core.Resource;
-using Wox.Helper;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Hotkey;
-using Wox.Image;
-using Wox.Plugin;
-using Wox.ViewModel;
-
-namespace Wox
+﻿namespace Wox
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Net;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System.Windows;
+    using Core.Plugin;
+    using Core.Resource;
+    using Helper;
+    using Infrastructure.Hotkey;
+    using Plugin;
+    using Squirrel;
+    using ViewModel;
+
     public class PublicAPIInstance : IPublicAPI
     {
-        private readonly SettingWindowViewModel _settingsVM;
-        private readonly MainViewModel _mainVM;
+        public event WoxGlobalKeyboardEventHandler GlobalKeyboardEvent;
 
-        #region Constructor
+        [Obsolete]
+        public void CloseApp()
+        {
+            Application.Current.MainWindow.Close();
+        }
+
+        [Obsolete]
+        public void HideApp()
+        {
+            _mainVM.MainWindowVisibility = Visibility.Hidden;
+        }
+
+        [Obsolete]
+        public void ShowApp()
+        {
+            _mainVM.MainWindowVisibility = Visibility.Visible;
+        }
+
+        [Obsolete("This will be removed in Wox 1.4")]
+        public void PushResults(Query query, PluginMetadata plugin, List<Result> results)
+        {
+            results.ForEach(o =>
+            {
+                o.PluginDirectory = plugin.PluginDirectory;
+                o.PluginID = plugin.ID;
+                o.OriginQuery = query;
+            });
+            Task.Run(() =>
+            {
+                var t = new CancellationTokenSource().Token;
+                _mainVM.UpdateResultView(results, plugin, query, t);
+            });
+        }
+
+        private readonly MainViewModel _mainVM;
+        private readonly SettingWindowViewModel _settingsVM;
 
         public PublicAPIInstance(SettingWindowViewModel settingsVM, MainViewModel mainVM)
         {
@@ -33,11 +64,9 @@ namespace Wox
             WebRequest.RegisterPrefix("data", new DataWebRequestFactory());
         }
 
-        #endregion
+        #region Public
 
-        #region Public API
-
-        public void ChangeQuery(string query, bool requery = false)
+        public void ChangeQuery(string query, bool reQuery = false)
         {
             _mainVM.ChangeQueryText(query);
         }
@@ -47,13 +76,7 @@ namespace Wox
             _mainVM.ChangeQueryText(query);
         }
 
-        [Obsolete]
-        public void CloseApp()
-        {
-            Application.Current.MainWindow.Close();
-        }
-
-        public void RestarApp()
+        public void RestartApp()
         {
             _mainVM.MainWindowVisibility = Visibility.Hidden;
 
@@ -82,18 +105,6 @@ namespace Wox
             PluginManager.ReloadData();
         }
 
-        [Obsolete]
-        public void HideApp()
-        {
-            _mainVM.MainWindowVisibility = Visibility.Hidden;
-        }
-
-        [Obsolete]
-        public void ShowApp()
-        {
-            _mainVM.MainWindowVisibility = Visibility.Visible;
-        }
-
         public void ShowMsg(string title, string subTitle = "", string iconPath = "")
         {
             ShowMsg(title, subTitle, iconPath, true);
@@ -112,7 +123,7 @@ namespace Wox
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                SettingWindow sw = SingletonWindowOpener.Open<SettingWindow>(this, _settingsVM);
+                var sw = SingletonWindowOpener.Open<SettingWindow>(this, _settingsVM);
             });
         }
 
@@ -141,37 +152,16 @@ namespace Wox
             return PluginManager.AllPlugins.ToList();
         }
 
-        public event WoxGlobalKeyboardEventHandler GlobalKeyboardEvent;
-
-        [Obsolete("This will be removed in Wox 1.4")]
-        public void PushResults(Query query, PluginMetadata plugin, List<Result> results)
-        {
-            results.ForEach(o =>
-            {
-                o.PluginDirectory = plugin.PluginDirectory;
-                o.PluginID = plugin.ID;
-                o.OriginQuery = query;
-            });
-            Task.Run(() =>
-            {
-
-                var t = new CancellationTokenSource().Token;
-                _mainVM.UpdateResultView(results, plugin, query, t);
-            });
-        }
-
         #endregion
 
-        #region Private Methods
+        #region Private
 
-        private bool KListener_hookedKeyboardCallback(KeyEvent keyevent, int vkcode, SpecialKeyState state)
+        private bool KListener_hookedKeyboardCallback(KeyEvent keyEvent, int vkCode, SpecialKeyState state)
         {
-            if (GlobalKeyboardEvent != null)
-            {
-                return GlobalKeyboardEvent((int)keyevent, vkcode, state);
-            }
+            if (GlobalKeyboardEvent != null) return GlobalKeyboardEvent((int) keyEvent, vkCode, state);
             return true;
         }
+
         #endregion
     }
 }

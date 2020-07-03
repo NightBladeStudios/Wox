@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_color_plugin_name">Colors</system:String>
     <system:String x:Key="wox_plugin_color_plugin_description">Allows to preview colors using hex values.(Try #000 in Wox)</system:String>
-    
+
 </ResourceDictionary>

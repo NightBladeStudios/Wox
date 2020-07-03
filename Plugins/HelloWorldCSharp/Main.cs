@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Wox.Plugin;
-
-namespace HelloWorldCSharp
+﻿namespace HelloWorldCSharp
 {
-    class Main : IPlugin
+    using System.Collections.Generic;
+    using System.IO;
+    using Wox.Plugin;
+
+    internal class Main : IPlugin
     {
+        #region Public
+
         public List<Result> Query(Query query)
         {
             var result = new Result
@@ -23,7 +21,8 @@ namespace HelloWorldCSharp
 
         public void Init(PluginInitContext context)
         {
-            
         }
+
+        #endregion
     }
 }

@@ -1,23 +1,22 @@
-﻿using NLog;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Wox.Infrastructure;
-using Wox.Infrastructure.Logger;
-
-namespace Wox.Plugin.ControlPanel
+﻿namespace Wox.Plugin.ControlPanel
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
+    using System.Linq;
+    using Infrastructure;
+    using Infrastructure.Logger;
+    using NLog;
+
     public class Main : IPlugin, IPluginI18n
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private PluginInitContext context;
         private List<ControlPanelItem> controlPanelItems = new List<ControlPanelItem>();
-        private string iconFolder;
         private string fileType;
+        private string iconFolder;
 
-        private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
+        #region Public
 
         public void Init(PluginInitContext context)
         {
@@ -27,7 +26,7 @@ namespace Wox.Plugin.ControlPanel
 
         public List<Result> Query(Query query)
         {
-            List<Result> results = new List<Result>();
+            var results = new List<Result>();
 
             foreach (var item in controlPanelItems)
             {
@@ -57,17 +56,17 @@ namespace Wox.Plugin.ControlPanel
                                 ex.Data.Add(nameof(item.GUID), item.GUID);
                                 Logger.WoxError($"cannot start control panel item {item.ExecutablePath}", ex);
                             }
+
                             return true;
                         }
                     };
 
-                    
 
                     results.Add(result);
                 }
             }
 
-            List<Result> panelItems = results.OrderByDescending(o => o.Score).Take(5).ToList();
+            var panelItems = results.OrderByDescending(o => o.Score).Take(5).ToList();
             return panelItems;
         }
 
@@ -80,5 +79,7 @@ namespace Wox.Plugin.ControlPanel
         {
             return context.API.GetTranslation("wox_plugin_controlpanel_plugin_description");
         }
+
+        #endregion
     }
 }

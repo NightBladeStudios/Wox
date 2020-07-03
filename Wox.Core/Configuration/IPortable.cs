@@ -1,8 +1,9 @@
-﻿
-namespace Wox.Core.Configuration
+﻿namespace Wox.Core.Configuration
 {
     public interface IPortable
     {
+        #region Public
+
         void EnablePortableMode();
         void DisablePortableMode();
         void RemoveShortcuts();
@@ -12,5 +13,7 @@ namespace Wox.Core.Configuration
         void MoveUserDataFolder(string fromLocation, string toLocation);
         void VerifyUserDataAfterMove(string fromLocation, string toLocation);
         bool CanUpdatePortability();
+
+        #endregion
     }
 }

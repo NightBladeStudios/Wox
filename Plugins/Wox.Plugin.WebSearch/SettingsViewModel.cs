@@ -1,9 +1,10 @@
-﻿using Wox.Infrastructure.Storage;
-
-namespace Wox.Plugin.WebSearch
+﻿namespace Wox.Plugin.WebSearch
 {
+    using Infrastructure.Storage;
+
     public class SettingsViewModel
     {
+        public Settings Settings { get; set; }
         private readonly PluginJsonStorage<Settings> _storage;
 
         public SettingsViewModel()
@@ -12,11 +13,13 @@ namespace Wox.Plugin.WebSearch
             Settings = _storage.Load();
         }
 
-        public Settings Settings { get; set; }
+        #region Public
 
         public void Save()
         {
             _storage.Save();
         }
+
+        #endregion
     }
 }

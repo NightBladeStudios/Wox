@@ -36,7 +36,7 @@
 
     <system:String x:Key="wox_plugin_program_plugin_name">Programa</system:String>
     <system:String x:Key="wox_plugin_program_plugin_description">Pesquisar programas no Wox</system:String>
-    
+
     <system:String x:Key="wox_plugin_program_ignored_sequences">Sequências ignoradas</system:String>
     <system:String x:Key="wox_plugin_program_sequence">Sequência</system:String>
     <system:String x:Key="wox_plugin_program_pls_select_ignored">Selecione uma sequência ignorada</system:String>
@@ -44,5 +44,5 @@
     <system:String x:Key="wox_plugin_program_use_regex">Utilizar expressões regulares?</system:String>
 
     <system:String x:Key="wox_plugin_program_invalid_path">Caminho inválido</system:String>
-    
+
 </ResourceDictionary>

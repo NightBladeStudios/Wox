@@ -12,25 +12,25 @@
         Icon="app.png"
         Title="{DynamicResource wox_settings}"
         WindowStartupLocation="CenterScreen"
-        MinHeight="500" MinWidth="800" 
-        Height="600" Width="800" 
+        MinHeight="500" MinWidth="800"
+        Height="600" Width="800"
         Closed="OnClosed"
         d:DataContext="{d:DesignInstance vm:SettingWindowViewModel}">
     <Window.InputBindings>
-        <KeyBinding Key="Escape" Command="Close"/>
+        <KeyBinding Key="Escape" Command="Close" />
     </Window.InputBindings>
     <Window.CommandBindings>
-        <CommandBinding Command="Close" Executed="OnCloseExecuted"/>
+        <CommandBinding Command="Close" Executed="OnCloseExecuted" />
     </Window.CommandBindings>
     <Window.Resources>
         <CollectionViewSource Source="{Binding Source={x:Static Fonts.SystemFontFamilies}}" x:Key="SortedFontsQuery">
             <CollectionViewSource.SortDescriptions>
-                <scm:SortDescription PropertyName="Source"/>
+                <scm:SortDescription PropertyName="Source" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource Source="{Binding Source={x:Static Fonts.SystemFontFamilies}}" x:Key="SortedFontsResult">
             <CollectionViewSource.SortDescriptions>
-                <scm:SortDescription PropertyName="Source"/>
+                <scm:SortDescription PropertyName="Source" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
     </Window.Resources>
@@ -39,72 +39,73 @@
         <TabItem Header="{DynamicResource general}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Orientation="Vertical">
-                <StackPanel.Resources>
-                    <Style TargetType="CheckBox">
-                        <Setter Property="Margin" Value="10" />
-                    </Style>
-                </StackPanel.Resources>
-                <CheckBox IsChecked="{Binding PortableMode}">
-                    <TextBlock Text="Portable Mode" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.StartWoxOnSystemStartup}"
-                          Checked="OnAutoStartupChecked" Unchecked="OnAutoStartupUncheck">
-                    <TextBlock Text="{DynamicResource startWoxOnSystemStartup}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.HideOnStartup}">
-                    <TextBlock Text="{DynamicResource hideOnStartup}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.HideWhenDeactive}">
-                    <TextBlock Text="{DynamicResource hideWoxWhenLoseFocus}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.HideNotifyIcon}">
-                    <TextBlock Text="{DynamicResource hideNotifyIcon}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.RememberLastLaunchLocation}">
-                    <TextBlock Text="{DynamicResource rememberLastLocation}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.IgnoreHotkeysOnFullscreen}">
-                    <TextBlock Text="{DynamicResource ignoreHotkeysOnFullscreen}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.AutoUpdates}">
-                    <TextBlock Text="{DynamicResource autoUpdates}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding Settings.UpdateToPrereleases}">
-                    <TextBlock Text="{DynamicResource updateToPrereleases}" />
-                </CheckBox>
-                <CheckBox IsChecked="{Binding ShouldUsePinyin}">
-                    <TextBlock Text="{DynamicResource ShouldUsePinyin}" />
-                </CheckBox>
-                <StackPanel Margin="10" Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource querySearchPrecision}" />
-                    <ComboBox Margin="10 0 0 0" Width="120"
-                              ItemsSource="{Binding QuerySearchPrecisionStrings}" 
-                              SelectedItem="{Binding Settings.QuerySearchPrecisionString}" />
+                    <StackPanel.Resources>
+                        <Style TargetType="CheckBox">
+                            <Setter Property="Margin" Value="10" />
+                        </Style>
+                    </StackPanel.Resources>
+                    <CheckBox IsChecked="{Binding PortableMode}">
+                        <TextBlock Text="Portable Mode" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.StartWoxOnSystemStartup}"
+                              Checked="OnAutoStartupChecked" Unchecked="OnAutoStartupUncheck">
+                        <TextBlock Text="{DynamicResource startWoxOnSystemStartup}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.HideOnStartup}">
+                        <TextBlock Text="{DynamicResource hideOnStartup}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.HideWhenDeactivated}">
+                        <TextBlock Text="{DynamicResource hideWoxWhenLoseFocus}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.HideNotifyIcon}">
+                        <TextBlock Text="{DynamicResource hideNotifyIcon}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.RememberLastLaunchLocation}">
+                        <TextBlock Text="{DynamicResource rememberLastLocation}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.IgnoreHotkeysOnFullscreen}">
+                        <TextBlock Text="{DynamicResource ignoreHotkeysOnFullscreen}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.AutoUpdates}">
+                        <TextBlock Text="{DynamicResource autoUpdates}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding Settings.UpdateToPreReleases}">
+                        <TextBlock Text="{DynamicResource updateToPrereleases}" />
+                    </CheckBox>
+                    <CheckBox IsChecked="{Binding ShouldUsePinyin}">
+                        <TextBlock Text="{DynamicResource ShouldUsePinyin}" />
+                    </CheckBox>
+                    <StackPanel Margin="10" Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource querySearchPrecision}" />
+                        <ComboBox Margin="10 0 0 0" Width="120"
+                                  ItemsSource="{Binding QuerySearchPrecisionStrings}"
+                                  SelectedItem="{Binding Settings.QuerySearchPrecisionString}" />
+                    </StackPanel>
+                    <StackPanel Margin="10" Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource lastQueryMode}" />
+                        <ComboBox Margin="10 0 0 0" Width="120"
+                                  ItemsSource="{Binding LastQueryModes}"
+                                  SelectedValue="{Binding Settings.LastQueryMode}"
+                                  DisplayMemberPath="Display" SelectedValuePath="Value" />
+                    </StackPanel>
+                    <StackPanel Margin="10" Orientation="Horizontal">
+                        <TextBlock Text="{DynamicResource language}" />
+                        <ComboBox Margin="10 0 0 0" Width="120"
+                                  ItemsSource="{Binding Languages}" SelectedValue="{Binding Language}"
+                                  DisplayMemberPath="Display" SelectedValuePath="LanguageCode" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="10">
+                        <TextBlock Text="{DynamicResource maxShowResults}" />
+                        <ComboBox Margin="10 0 0 0" Width="45" ItemsSource="{Binding MaxResultsRange}"
+                                  SelectedItem="{Binding Settings.MaxResultsToShow}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Margin="10" Text="{DynamicResource pythonDirectory}" />
+                        <TextBox Width="300" Margin="10" Text="{Binding Settings.PluginSettings.PythonDirectory}" />
+                        <Button Margin="10" Click="OnSelectPythonDirectoryClick"
+                                Content="{DynamicResource selectPythonDirectory}" />
+                    </StackPanel>
                 </StackPanel>
-                <StackPanel Margin="10" Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource lastQueryMode}" />
-                    <ComboBox Margin="10 0 0 0" Width="120"
-                              ItemsSource="{Binding LastQueryModes}" SelectedValue="{Binding Settings.LastQueryMode}"
-                              DisplayMemberPath="Display" SelectedValuePath="Value" />
-                </StackPanel>
-                <StackPanel Margin="10" Orientation="Horizontal">
-                    <TextBlock Text="{DynamicResource language}" />
-                    <ComboBox Margin="10 0 0 0" Width="120"
-                              ItemsSource="{Binding Languages}" SelectedValue="{Binding Language}"
-                              DisplayMemberPath="Display" SelectedValuePath="LanguageCode" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Margin="10">
-                    <TextBlock Text="{DynamicResource maxShowResults}" />
-                    <ComboBox Margin="10 0 0 0" Width="45" ItemsSource="{Binding MaxResultsRange}"
-                              SelectedItem="{Binding Settings.MaxResultsToShow}" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Margin="10" Text="{DynamicResource pythonDirectory}" />
-                    <TextBox Width="300" Margin="10" Text="{Binding Settings.PluginSettings.PythonDirectory}" />
-                    <Button Margin="10" Click="OnSelectPythonDirectoryClick"
-                            Content="{DynamicResource selectPythonDirectory}" />
-                </StackPanel>
-            </StackPanel>
             </ScrollViewer>
         </TabItem>
         <TabItem Header="{DynamicResource plugin}">
@@ -173,14 +174,16 @@
                                                 VerticalAlignment="Bottom" Opacity="0.5">
                                         <TextBlock Text="{DynamicResource author}" />
                                         <TextBlock Text=": " />
-                                        <TextBlock Text="{Binding PluginPair.Metadata.Author}" ToolTip="{Binding PluginPair.Metadata.Author}" />
+                                        <TextBlock Text="{Binding PluginPair.Metadata.Author}"
+                                                   ToolTip="{Binding PluginPair.Metadata.Author}" />
                                     </StackPanel>
                                 </Grid>
                                 <TextBlock Text="{Binding PluginPair.Metadata.Description}"
                                            ToolTip="{Binding PluginPair.Metadata.Description}"
                                            Grid.Row="1" Opacity="0.5" />
                                 <DockPanel Grid.Row="2" Margin="0 10 0 8">
-                                    <CheckBox IsChecked="{Binding PluginPair.Metadata.Disabled}" Checked="OnPluginToggled"
+                                    <CheckBox IsChecked="{Binding PluginPair.Metadata.Disabled}"
+                                              Checked="OnPluginToggled"
                                               Unchecked="OnPluginToggled">
                                         <TextBlock Text="{DynamicResource disable}" />
                                     </CheckBox>
@@ -194,11 +197,11 @@
                                                ToolTip="Change Action Keywords"
                                                Margin="5 0 0 0" Cursor="Hand" Foreground="Blue"
                                                MouseUp="OnPluginActionKeywordsClick" />
-                                    <TextBlock Text="{Binding InitilizaTime}" Margin="10 0 0 0" />
+                                    <TextBlock Text="{Binding InitializationTime}" Margin="10 0 0 0" />
                                     <TextBlock Text="{Binding QueryTime}" Margin="10 0 0 0" />
                                     <TextBlock Text="{DynamicResource pluginDirectory}"
                                                HorizontalAlignment="Right" Cursor="Hand"
-                                               MouseUp="OnPluginDirecotyClick" Foreground="Blue" />
+                                               MouseUp="OnPluginDirectoryClick" Foreground="Blue" />
                                 </DockPanel>
                             </Grid>
                         </Grid>
@@ -246,7 +249,8 @@
                                     <TextBox Text="{DynamicResource helloWox}" IsReadOnly="True"
                                              Style="{DynamicResource QueryBoxStyle}" Grid.Row="0" />
                                     <ContentControl Grid.Row="1">
-                                        <wox:ResultListBox DataContext="{Binding PreviewResults, Mode=OneTime}" Visibility="Visible"/>
+                                        <wox:ResultListBox DataContext="{Binding PreviewResults, Mode=OneTime}"
+                                                           Visibility="Visible" />
                                     </ContentControl>
                                 </Grid>
                             </Border>
@@ -256,32 +260,32 @@
                     <Grid Grid.Row="1" Margin="0 10">
                         <Grid.Resources>
                             <Style TargetType="ComboBox">
-                                <Setter Property="VerticalAlignment" Value="Center"/>
-                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="VerticalAlignment" Value="Center" />
+                                <Setter Property="HorizontalAlignment" Value="Center" />
                                 <Setter Property="Height" Value="25" />
-                                <Setter Property="MinWidth" Value="170"/>
+                                <Setter Property="MinWidth" Value="170" />
                             </Style>
                             <Style TargetType="TextBlock">
-                                <Setter Property="Margin" Value="5"/>
-                                <Setter Property="TextAlignment" Value="Right"/>
-                                <Setter Property="VerticalAlignment" Value="Center"/>
+                                <Setter Property="Margin" Value="5" />
+                                <Setter Property="TextAlignment" Value="Right" />
+                                <Setter Property="VerticalAlignment" Value="Center" />
                             </Style>
                         </Grid.Resources>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                            <ColumnDefinition />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                            <RowDefinition/>
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
                         </Grid.RowDefinitions>
                         <TextBlock Text="{DynamicResource queryBoxFont}"
                                    Grid.Column="0" Grid.Row="0" />
                         <ComboBox ItemsSource="{Binding Source={StaticResource SortedFontsQuery}}"
                                   SelectedItem="{Binding SelectedQueryBoxFont}"
-                                  Grid.Column="1" Grid.Row="0"/>
+                                  Grid.Column="1" Grid.Row="0" />
                         <ComboBox ItemsSource="{Binding SelectedQueryBoxFont.FamilyTypefaces}"
                                   SelectedItem="{Binding SelectedQueryBoxFontFaces}"
                                   Grid.Column="2" Grid.Row="0">
@@ -302,7 +306,7 @@
                                    Grid.Column="0" Grid.Row="1" />
                         <ComboBox ItemsSource="{Binding Source={StaticResource SortedFontsResult}}"
                                   SelectedItem="{Binding SelectedResultFont}"
-                                  Grid.Column="1" Grid.Row="1"/>
+                                  Grid.Column="1" Grid.Row="1" />
                         <ComboBox ItemsSource="{Binding SelectedResultFont.FamilyTypefaces}"
                                   SelectedItem="{Binding SelectedResultFontFaces}"
                                   Grid.Column="2" Grid.Row="1">
@@ -318,8 +322,8 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        
-                        
+
+
                         <TextBlock Text="{DynamicResource resultItemHighlightFont}"
                                    Grid.Column="1" Grid.Row="2" />
                         <ComboBox ItemsSource="{Binding SelectedResultFont.FamilyTypefaces}"
@@ -385,7 +389,7 @@
                             Margin="10" Content="{DynamicResource delete}" />
                     <Button Click="OnnEditCustomHotkeyClick" Width="100" Margin="10"
                             Content="{DynamicResource edit}" />
-                    <Button Click="OnAddCustomeHotkeyClick" Width="100" Margin="10"
+                    <Button Click="OnAddCustomHotkeyClick" Width="100" Margin="10"
                             Content="{DynamicResource add}" />
                 </StackPanel>
             </Grid>
@@ -409,7 +413,8 @@
                     <TextBlock Text="{DynamicResource server}" Grid.Row="0" Grid.Column="0" Padding="5" />
                     <TextBox Text="{Binding Settings.Proxy.Server}" Grid.Row="0" Grid.Column="1" Padding="5" />
                     <TextBlock Text="{DynamicResource port}" Grid.Row="0" Grid.Column="2" Padding="5" />
-                    <TextBox Text="{Binding Settings.Proxy.Port, TargetNullValue={x:Static sys:String.Empty} }" Grid.Row="0" Grid.Column="3" Padding="5" />
+                    <TextBox Text="{Binding Settings.Proxy.Port, TargetNullValue={x:Static sys:String.Empty} }"
+                             Grid.Row="0" Grid.Column="3" Padding="5" />
                     <TextBlock Text="{DynamicResource userName}" Grid.Row="1" Grid.Column="0" Padding="5" />
                     <TextBox Text="{Binding Settings.Proxy.UserName}" Grid.Row="1" Grid.Column="1" Padding="5" />
                     <TextBlock Text="{DynamicResource password}" Grid.Row="1" Grid.Column="2" Padding="5" />

@@ -30,7 +30,7 @@
     <system:String x:Key="ignoreHotkeysOnFullscreen">Ignorovať klávesové skratky v režime na celú obrazovku</system:String>
     <system:String x:Key="pythonDirectory">Priečinok s Pythonom</system:String>
     <system:String x:Key="autoUpdates">Automatická aktualizácia</system:String>
-	    <system:String x:Key="updateToPrereleases">Aktualizovať na predbežné vydanie</system:String>																				
+    <system:String x:Key="updateToPrereleases">Aktualizovať na predbežné vydanie</system:String>
     <system:String x:Key="selectPythonDirectory">Vybrať</system:String>
     <system:String x:Key="hideOnStartup">Schovať Wox po spustení</system:String>
     <system:String x:Key="hideNotifyIcon">Schovať ikonu z oblasti oznámení</system:String>
@@ -54,7 +54,7 @@
     <system:String x:Key="helloWox">Ahoj Wox</system:String>
     <system:String x:Key="queryBoxFont">Písmo poľa pre dopyt</system:String>
     <system:String x:Key="resultItemFont">Písmo výsledkov</system:String>
-    <system:String x:Key="resultItemHighlightFont">Písmo zvýraznených výsledkov</system:String>																							 
+    <system:String x:Key="resultItemHighlightFont">Písmo zvýraznených výsledkov</system:String>
     <system:String x:Key="windowMode">Režim okno</system:String>
     <system:String x:Key="opacity">Nepriehľadnosť</system:String>
     <system:String x:Key="theme_load_failure_path_not_exists">Motív {0} neexistuje, použije sa predvolený motív</system:String>
@@ -95,7 +95,7 @@
     <system:String x:Key="newVersionTips">Je dostupná nová verzia {0}, prosím, reštartujte Wox.</system:String>
     <system:String x:Key="checkUpdatesFailed">Kontrola aktualizácií zlyhala, prosím, skontrolujte pripojenie na internet a nastavenie proxy k api.github.com.</system:String>
     <system:String x:Key="downloadUpdatesFailed">
-        Sťahovanie aktualizácií zlyhalo, skontrolujte pripojenie na internet a nastavenie proxy k github-cloud.s3.amazonaws.com, 
+        Sťahovanie aktualizácií zlyhalo, skontrolujte pripojenie na internet a nastavenie proxy k github-cloud.s3.amazonaws.com,
         alebo prejdite na https://github.com/Wox-launcher/Wox/releases pre manuálne stiahnutie aktualizácií.
     </system:String>
     <system:String x:Key="releaseNotes">Poznámky k vydaniu:</system:String>

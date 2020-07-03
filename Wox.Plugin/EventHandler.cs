@@ -1,9 +1,10 @@
-﻿using System.Windows;
-using System.Windows.Input;
-
-namespace Wox.Plugin
+﻿namespace Wox.Plugin
 {
+    using System.Windows;
+    using System.Windows.Input;
+
     public delegate void WoxKeyDownEventHandler(WoxKeyDownEventArgs e);
+
     public delegate void AfterWoxQueryEventHandler(WoxQueryEventArgs e);
 
     public delegate void ResultItemDropEventHandler(Result result, IDataObject dropObject, DragEventArgs e);

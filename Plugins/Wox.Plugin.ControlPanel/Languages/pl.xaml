@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_controlpanel_plugin_name">Panel sterowania</system:String>
     <system:String x:Key="wox_plugin_controlpanel_plugin_description">Szybie wyszukiwanie ustawień w panelu sterowania</system:String>
-    
+
 </ResourceDictionary>

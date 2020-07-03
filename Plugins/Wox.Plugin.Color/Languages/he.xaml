@@ -4,5 +4,5 @@
 
     <system:String x:Key="wox_plugin_color_plugin_name">צבעים</system:String>
     <system:String x:Key="wox_plugin_color_plugin_description">מאפשר להציג תצוגה מקדימה של צבעים באמצעות ערכי hex. (נסה #000 ב Wox)</system:String>
-    
+
 </ResourceDictionary>

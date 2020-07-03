@@ -1,60 +1,55 @@
-﻿using NLog;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Windows;
-using Wox.Infrastructure.Logger;
-
-namespace Wox.Infrastructure
+﻿namespace Wox.Infrastructure
 {
+    using System.Diagnostics;
+    using System.IO;
+    using System.Windows;
+    using Logger;
+    using NLog;
+
     public static class FilesFolders
     {
         private static readonly NLog.Logger Logger = LogManager.GetCurrentClassLogger();
 
+        #region Public
+
         public static void Copy(this string sourcePath, string targetPath)
         {
             // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new DirectoryInfo(sourcePath);
+            var dir = new DirectoryInfo(sourcePath);
 
             if (!dir.Exists)
-            {
                 throw new DirectoryNotFoundException(
                     "Source directory does not exist or could not be found: "
                     + sourcePath);
-            }
 
             try
             {
-                DirectoryInfo[] dirs = dir.GetDirectories();
+                var dirs = dir.GetDirectories();
                 // If the destination directory doesn't exist, create it.
-                if (!Directory.Exists(targetPath))
-                {
-                    Directory.CreateDirectory(targetPath);
-                }
+                if (!Directory.Exists(targetPath)) Directory.CreateDirectory(targetPath);
 
                 // Get the files in the directory and copy them to the new location.
-                FileInfo[] files = dir.GetFiles();
-                foreach (FileInfo file in files)
+                var files = dir.GetFiles();
+                foreach (var file in files)
                 {
-                    string temppath = Path.Combine(targetPath, file.Name);
-                    file.CopyTo(temppath, false);
+                    var path = Path.Combine(targetPath, file.Name);
+                    file.CopyTo(path, false);
                 }
 
                 // Recursively copy subdirectories by calling itself on each subdirectory until there are no more to copy
-                foreach (DirectoryInfo subdir in dirs)
+                foreach (var subDirInfo in dirs)
                 {
-                    string temppath = Path.Combine(targetPath, subdir.Name);
-                    Copy(subdir.FullName, temppath);
+                    var path = Path.Combine(targetPath, subDirInfo.Name);
+                    Copy(subDirInfo.FullName, path);
                 }
             }
             catch (System.Exception e)
             {
-                string message = $"Copying path {targetPath} has failed, it will now be deleted for consistency";
+                var message = $"Copying path {targetPath} has failed, it will now be deleted for consistency";
                 Logger.WoxError(message, e);
                 MessageBox.Show(message);
                 RemoveFolderIfExists(targetPath);
             }
-
         }
 
         public static bool VerifyBothFolderFilesEqual(this string fromPath, string toPath)
@@ -74,12 +69,11 @@ namespace Wox.Infrastructure
             }
             catch (System.Exception e)
             {
-                string message = $"Unable to verify folders and files between {fromPath} and {toPath}";
+                var message = $"Unable to verify folders and files between {fromPath} and {toPath}";
                 Logger.WoxError(message, e);
                 MessageBox.Show(message);
                 return false;
             }
-
         }
 
         public static void RemoveFolderIfExists(this string path)
@@ -91,7 +85,7 @@ namespace Wox.Infrastructure
             }
             catch (System.Exception e)
             {
-                string message = $"Not able to delete folder { (object)path}, please go to the location and manually delete it";
+                var message = $"Not able to delete folder {(object) path}, please go to the location and manually delete it";
                 Logger.WoxError(message, e);
                 MessageBox.Show(message);
             }
@@ -107,7 +101,7 @@ namespace Wox.Infrastructure
             return File.Exists(filePath);
         }
 
-        public static void OpenLocationInExporer(string location)
+        public static void OpenLocationInExporter(string location)
         {
             try
             {
@@ -116,10 +110,12 @@ namespace Wox.Infrastructure
             }
             catch (System.Exception e)
             {
-                string message = $"Unable to open location { (object)location}, please check if it exists";
+                var message = $"Unable to open location {(object) location}, please check if it exists";
                 Logger.WoxError(message, e);
                 MessageBox.Show(message);
             }
         }
+
+        #endregion
     }
 }
